@@ -1,9 +1,10 @@
+/*
+Copyright © 2025 NAME HERE <EMAIL ADDRESS>
+*/
 package main
 
-import (
-	"fmt"
-)
+import "github.com/Vidalee/kacao/cmd"
 
 func main() {
-	fmt.Print("kacao :)\n")
+	cmd.Execute()
 }
