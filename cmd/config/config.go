@@ -1,6 +1,7 @@
-package cmd
+package config
 
 import (
+	"github.com/Vidalee/kacao/cmd"
 	"github.com/spf13/cobra"
 )
 
@@ -11,5 +12,5 @@ var configCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.AddCommand(configCmd)
+	cmd.RootCmd.AddCommand(configCmd)
 }

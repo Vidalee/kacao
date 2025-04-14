@@ -10,16 +10,18 @@ import (
 	"github.com/spf13/viper"
 )
 
+var ConsumerGroup = "kacao-cli"
+
 var cfgFile string
 
-var rootCmd = &cobra.Command{
+var RootCmd = &cobra.Command{
 	Use:   "kacao",
 	Short: "Kafka CLI",
 	Long:  `A CLI to manage and interact with Kafka`,
 }
 
 func Execute() {
-	err := rootCmd.Execute()
+	err := RootCmd.Execute()
 	if err != nil {
 		os.Exit(1)
 	}
@@ -28,7 +30,7 @@ func Execute() {
 func init() {
 	cobra.OnInitialize(initConfig)
 
-	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.kacao.yaml)")
+	RootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.kacao.yaml)")
 }
 
 func initConfig() {
@@ -63,4 +65,34 @@ func initConfig() {
 			cobra.CheckErr(err)
 		}
 	}
+}
+
+func GetCurrentClusterBootstrapServers() ([]string, error) {
+	contexts := viper.GetStringMap("contexts")
+	if len(contexts) == 0 {
+		return []string{}, errors.New("no contexts set. Use 'kacao config set-context NAME' to set a context")
+	}
+
+	if len(contexts) == 1 {
+		for contextName := range contexts {
+			viper.Set("current-context", contextName)
+			break
+		}
+	}
+
+	currentContext := viper.GetString("current-context")
+	if currentContext == "" {
+		return []string{}, errors.New("no context set. Use 'kacao config use-context NAME' to set a context")
+	}
+
+	clusterName := viper.GetString("contexts." + currentContext + ".cluster")
+	if clusterName == "" {
+		return []string{}, fmt.Errorf("context '%s' has no cluster set", currentContext)
+	}
+
+	bootstrapServers := viper.GetStringSlice("clusters." + clusterName + ".bootstrap-servers")
+	if len(bootstrapServers) == 0 {
+		return []string{}, fmt.Errorf("no bootstrap servers set for cluster '%s'", clusterName)
+	}
+	return bootstrapServers, nil
 }
