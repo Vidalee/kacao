@@ -14,6 +14,7 @@ var deleteClusterCmd = &cobra.Command{
 		if len(args) == 0 {
 			err := cmd.Help()
 			cobra.CheckErr(err)
+			return
 		}
 		clusterName := args[0]
 

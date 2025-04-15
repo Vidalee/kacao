@@ -25,6 +25,7 @@ This command will delete the specified topic(s) from the Kafka cluster. Use with
 		if len(args) == 0 {
 			err := command.Help()
 			cobra.CheckErr(err)
+			return
 		}
 
 		boostrapServers, err := cmd.GetCurrentClusterBootstrapServers()

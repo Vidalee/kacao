@@ -13,6 +13,7 @@ var useContextCmd = &cobra.Command{
 		if len(args) == 0 {
 			err := cmd.Help()
 			cobra.CheckErr(err)
+			return
 		}
 		contextName := args[0]
 

@@ -21,9 +21,11 @@ Create a single topic:
 If you create multiple topics at once, they will all have the same number of partitions and replication factor:
 - kacao create topic <topic_name_1> <topic_name_2> ... [--partitions <partitions>] [--replication-factor <replication_factor>]`,
 	Run: func(command *cobra.Command, args []string) {
+		fmt.Printf("%d args\n", len(args))
 		if len(args) == 0 {
 			err := command.Help()
 			cobra.CheckErr(err)
+			return
 		}
 
 		boostrapServers, err := cmd.GetCurrentClusterBootstrapServers()
