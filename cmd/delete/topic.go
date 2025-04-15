@@ -44,21 +44,21 @@ This command will delete the specified topic(s) from the Kafka cluster. Use with
 		topicDetails, err := (*kadm.Client).ListTopics(adminClient, ctx)
 		cobra.CheckErr(err)
 
-		topicsInCLuster := make([]string, len(topicDetails))
+		topicsInCluster := make([]string, len(topicDetails))
 		for _, topicDetail := range topicDetails {
-			topicsInCLuster = append(topicsInCLuster, topicDetail.Topic)
+			topicsInCluster = append(topicsInCluster, topicDetail.Topic)
 		}
 
 		for _, topicToDelete := range args {
-			if !slices.Contains(topicsInCLuster, topicToDelete) {
-				fmt.Printf("Topic '%s' does not exist in the cluster.\n", topicToDelete)
+			if !slices.Contains(topicsInCluster, topicToDelete) {
+				fmt.Printf("Error: Topic '%s' does not exist in the cluster!\n", topicToDelete)
 				os.Exit(1)
 			}
 		}
 
 		topicDeleteResponses, err := (*kadm.Client).DeleteTopics(adminClient, ctx, args...)
 		if err != nil {
-			fmt.Printf("Failed to delete topics: %v\n", err)
+			fmt.Printf("Error: Failed to delete topics: %v\n", err)
 			os.Exit(1)
 		}
 		for _, topicDeleteResponse := range topicDeleteResponses {

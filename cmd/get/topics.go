@@ -15,7 +15,7 @@ var topicsCmd = &cobra.Command{
 	Short: "Display topics of the current cluster",
 	Long: `Display topics of the current cluster
 
-You can also specify topics  name to only display that topic:
+You can also specify topics name to only display that topic:
 - kacao get topics <topic_name>
 - kacao get topics <topic_name_1> <topic_name_2> ...`,
 	Run: func(command *cobra.Command, args []string) {

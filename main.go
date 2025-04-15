@@ -5,6 +5,7 @@ import (
 	_ "github.com/Vidalee/kacao/cmd/config"
 	_ "github.com/Vidalee/kacao/cmd/create"
 	_ "github.com/Vidalee/kacao/cmd/delete"
+	_ "github.com/Vidalee/kacao/cmd/describe"
 	_ "github.com/Vidalee/kacao/cmd/get"
 )
 
