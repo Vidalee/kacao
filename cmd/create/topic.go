@@ -8,20 +8,20 @@ import (
 	"github.com/twmb/franz-go/pkg/kadm"
 	"github.com/twmb/franz-go/pkg/kgo"
 	"os"
+	"strings"
 )
 
 var deleteTopicCmd = &cobra.Command{
-	Use:   "topic <topic_name> [--partitions <partitions>] [--replication-factor <replication_factor>]",
+	Use:   "topic <topic_name> [--partitions <partitions>] [--replication-factor <replication_factor>] [--options <key=value>]",
 	Short: "Create a topic",
 	Long: `Create one or many topic.
 
 Create a single topic:
-- kacao create topic <topic_name> [--partitions <partitions>] [--replication-factor <replication_factor>]
+- kacao create topic <topic_name> [--partitions <partitions>] [--replication-factor <replication_factor>] [--options <key=value>]
 
 If you create multiple topics at once, they will all have the same number of partitions and replication factor:
-- kacao create topic <topic_name_1> <topic_name_2> ... [--partitions <partitions>] [--replication-factor <replication_factor>]`,
+- kacao create topic <topic_name_1> <topic_name_2> ... [--partitions <partitions>] [--replication-factor <replication_factor>] [--options <key=value>]`,
 	Run: func(command *cobra.Command, args []string) {
-		fmt.Printf("%d args\n", len(args))
 		if len(args) == 0 {
 			err := command.Help()
 			cobra.CheckErr(err)
@@ -47,9 +47,20 @@ If you create multiple topics at once, they will all have the same number of par
 		cobra.CheckErr(err)
 		replicationFactor, err := command.Flags().GetInt16("replication-factor")
 		cobra.CheckErr(err)
+		topicOptions := make(map[string]*string)
+		topicOptionsArray, err := command.Flags().GetStringArray("options")
+		cobra.CheckErr(err)
+		for _, option := range topicOptionsArray {
+			parts := strings.Split(option, "=")
+			if len(parts) != 2 {
+				fmt.Printf("Invalid option format: %s. Expected key=value.\n", option)
+				os.Exit(1)
+			}
+			topicOptions[parts[0]] = &parts[1]
+		}
 
 		if partitions < 1 {
-			createTopicResponse, err := (*kadm.Client).CreateTopic(adminClient, ctx, partitions, replicationFactor, map[string]*string{}, topicName)
+			createTopicResponse, err := (*kadm.Client).CreateTopic(adminClient, ctx, partitions, replicationFactor, topicOptions, topicName)
 			cobra.CheckErr(err)
 
 			if createTopicResponse.Err != nil {
@@ -58,7 +69,7 @@ If you create multiple topics at once, they will all have the same number of par
 			}
 			fmt.Printf("Created topic '%s'.\n", topicName)
 		} else {
-			createTopicsResponses, err := (*kadm.Client).CreateTopics(adminClient, ctx, partitions, replicationFactor, map[string]*string{}, args...)
+			createTopicsResponses, err := (*kadm.Client).CreateTopics(adminClient, ctx, partitions, replicationFactor, topicOptions, args...)
 			cobra.CheckErr(err)
 			for _, createTopicResponse := range createTopicsResponses {
 				if createTopicResponse.Err != nil {
@@ -74,6 +85,7 @@ If you create multiple topics at once, they will all have the same number of par
 func init() {
 	deleteTopicCmd.Flags().Int32("partitions", 1, "Number of partitions")
 	deleteTopicCmd.Flags().Int16("replication-factor", 1, "Replication factor")
+	deleteTopicCmd.Flags().StringArrayP("options", "o", []string{}, "Topic options in the form of key=value. Can be specified multiple times. Example: --options retention.ms=1000 --options cleanup.policy=compact")
 
 	createCmd.AddCommand(deleteTopicCmd)
 }
