@@ -10,7 +10,7 @@ import (
 	"os"
 )
 
-var topicsCmd = &cobra.Command{
+var topicCmd = &cobra.Command{
 	Use:   "topic",
 	Short: "Describe a topic of the current cluster",
 	Long: `Describe a topic of the current cluster
@@ -124,5 +124,5 @@ func getMessageCount(startOffsets map[int32]kadm.ListedOffset, endOffsets map[in
 }
 
 func init() {
-	describeCmd.AddCommand(topicsCmd)
+	describeCmd.AddCommand(topicCmd)
 }

@@ -11,7 +11,7 @@ import (
 	"strings"
 )
 
-var deleteTopicCmd = &cobra.Command{
+var topicCmd = &cobra.Command{
 	Use:   "topic <topic_name> [--partitions <partitions>] [--replication-factor <replication_factor>] [--options <key=value>]",
 	Short: "Create a topic",
 	Long: `Create one or many topic.
@@ -83,9 +83,9 @@ If you create multiple topics at once, they will all have the same number of par
 }
 
 func init() {
-	deleteTopicCmd.Flags().Int32("partitions", 1, "Number of partitions")
-	deleteTopicCmd.Flags().Int16("replication-factor", 1, "Replication factor")
-	deleteTopicCmd.Flags().StringArrayP("options", "o", []string{}, "Topic options in the form of key=value. Can be specified multiple times. Example: --options retention.ms=1000 --options cleanup.policy=compact")
+	topicCmd.Flags().Int32("partitions", 1, "Number of partitions")
+	topicCmd.Flags().Int16("replication-factor", 1, "Replication factor")
+	topicCmd.Flags().StringArrayP("options", "o", []string{}, "Topic options in the form of key=value. Can be specified multiple times. Example: --options retention.ms=1000 --options cleanup.policy=compact")
 
-	createCmd.AddCommand(deleteTopicCmd)
+	createCmd.AddCommand(topicCmd)
 }
