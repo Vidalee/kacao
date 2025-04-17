@@ -42,7 +42,6 @@ var partitionsCmd = &cobra.Command{
 		listedOffsetsByTopic, err := (*kadm.Client).ListCommittedOffsets(adminClient, ctx, args[0])
 		cobra.CheckErr(err)
 		listedOffsets := listedOffsetsByTopic[args[0]]
-
 		if len(listedOffsets) == 0 {
 			fmt.Printf("No partitions found for topic '%s'. Does it exist?\n", args[0])
 			return
@@ -54,14 +53,12 @@ var partitionsCmd = &cobra.Command{
 		}
 		slices.Sort(orderedListedOffsets)
 
-		fmt.Printf("%-25s%-50s%-25s%-25s%-25s\n", "Topic", "Partition", "Offset", "Leader Epoch", "Timestamp")
+		fmt.Printf("%-25s%-25s%-25s%-25s%-25s\n", "Topic", "Partition", "Record Offset", "Leader Epoch", "Timestamp")
 
 		for _, partition := range orderedListedOffsets {
 			listedOffset := listedOffsets[partition]
-			if listedOffset.Err != nil {
-				fmt.Printf("Error: %s\n", listedOffset.Err)
-				continue
-			}
+			cobra.CheckErr(listedOffset.Err)
+
 			var formattedTimestamp string
 			if listedOffset.Timestamp == -1 {
 				formattedTimestamp = "-1"
@@ -70,7 +67,7 @@ var partitionsCmd = &cobra.Command{
 				formattedTimestamp = timestamp.Format(time.RFC3339)
 			}
 
-			fmt.Printf("%-25s%-50d%-25d%-25d%-25s\n", args[0], partition,
+			fmt.Printf("%-25s%-25d%-25d%-25d%-25s\n", args[0], partition,
 				listedOffset.Offset, listedOffset.LeaderEpoch, formattedTimestamp)
 		}
 	},
