@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"os"
@@ -18,7 +19,7 @@ var useContextCmd = &cobra.Command{
 		contextName := args[0]
 
 		if !viper.IsSet("contexts." + contextName) {
-			cmd.Printf("Context '%s' does not exist in the configuration.\n", contextName)
+			fmt.Printf("Context '%s' does not exist in the configuration.\n", contextName)
 			os.Exit(1)
 		}
 
