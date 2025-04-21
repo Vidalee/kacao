@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/Vidalee/kacao/cmd"
 	"github.com/spf13/cobra"
-	"github.com/twmb/franz-go/pkg/kadm"
 	"github.com/twmb/franz-go/pkg/kgo"
 	"os"
 	"strings"
@@ -32,9 +31,7 @@ var produceCmd = &cobra.Command{
 			kgo.ConsumerGroup(consumerGroup),
 		)
 		cobra.CheckErr(err)
-		adminClient := kadm.NewClient(cl)
 		defer cl.Close()
-		defer adminClient.Close()
 
 		ctx := context.Background()
 
@@ -58,7 +55,6 @@ var produceCmd = &cobra.Command{
 			}
 			kafkaHeaders = append(kafkaHeaders, kgo.RecordHeader{Key: parts[0], Value: []byte(parts[1])})
 		}
-
 		var wg sync.WaitGroup
 		wg.Add(1)
 		record := &kgo.Record{Topic: args[0], Value: []byte(message), Key: []byte(key), Headers: kafkaHeaders}
