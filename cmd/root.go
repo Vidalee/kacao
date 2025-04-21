@@ -10,7 +10,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-var ConsumerGroup = "kacao-cli"
+var DefaultConsumerGroup = "kacao-cli"
 
 var cfgFile string
 
@@ -95,4 +95,41 @@ func GetCurrentClusterBootstrapServers() ([]string, error) {
 		return []string{}, fmt.Errorf("no bootstrap servers set for cluster '%s'", clusterName)
 	}
 	return bootstrapServers, nil
+}
+
+func GetConsumerGroup() (string, error) {
+	contexts := viper.GetStringMap("contexts")
+	if len(contexts) == 0 {
+		return "", errors.New("no contexts set. Use 'kacao config set-context NAME' to set a context")
+	}
+
+	if len(contexts) == 1 {
+		for contextName := range contexts {
+			viper.Set("current-context", contextName)
+			break
+		}
+	}
+
+	currentContext := viper.GetString("current-context")
+	if currentContext == "" {
+		return "", errors.New("no context set. Use 'kacao config use-context NAME' to set a context")
+	}
+
+	consumerGroup := viper.GetString("contexts." + currentContext + ".consumer-group")
+
+	if consumerGroup == "" {
+		viper.Set("contexts."+currentContext+".consumer-group", DefaultConsumerGroup)
+		consumerGroup = DefaultConsumerGroup
+		err := viper.WriteConfig()
+		if err != nil {
+			if os.IsNotExist(err) {
+				err := viper.SafeWriteConfig()
+				cobra.CheckErr(err)
+			} else {
+				cobra.CheckErr(err)
+			}
+		}
+		return consumerGroup, nil
+	}
+	return consumerGroup, nil
 }

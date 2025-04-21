@@ -24,7 +24,8 @@ var getContextsCmd = &cobra.Command{
 		fmt.Println("Contexts defined in the configuration:")
 		for contextName, contextConfig := range contexts {
 			cluster := contextConfig.(map[string]interface{})["cluster"]
-			fmt.Printf("- %s: cluster=%s\n", contextName, cluster)
+			consumerGroup := contextConfig.(map[string]interface{})["consumer-group"]
+			fmt.Printf("- %s: consumer-group=%v cluster=%v\n", contextName, consumerGroup, cluster)
 		}
 	},
 }

@@ -16,10 +16,11 @@ var brokersCmd = &cobra.Command{
 	Run: func(command *cobra.Command, args []string) {
 		boostrapServers, err := cmd.GetCurrentClusterBootstrapServers()
 		cobra.CheckErr(err)
-
+		consumerGroup, err := cmd.GetConsumerGroup()
+		cobra.CheckErr(err)
 		cl, err := kgo.NewClient(
 			kgo.SeedBrokers(boostrapServers...),
-			kgo.ConsumerGroup(cmd.ConsumerGroup),
+			kgo.ConsumerGroup(consumerGroup),
 		)
 		cobra.CheckErr(err)
 		adminClient := kadm.NewClient(cl)

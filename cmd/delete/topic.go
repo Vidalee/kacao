@@ -30,10 +30,11 @@ This command will delete the specified topic(s) from the Kafka cluster. Use with
 
 		boostrapServers, err := cmd.GetCurrentClusterBootstrapServers()
 		cobra.CheckErr(err)
-
+		consumerGroup, err := cmd.GetConsumerGroup()
+		cobra.CheckErr(err)
 		cl, err := kgo.NewClient(
 			kgo.SeedBrokers(boostrapServers...),
-			kgo.ConsumerGroup(cmd.ConsumerGroup),
+			kgo.ConsumerGroup(consumerGroup),
 		)
 		cobra.CheckErr(err)
 		adminClient := kadm.NewClient(cl)
