@@ -12,7 +12,7 @@ import (
 )
 
 var produceCmd = &cobra.Command{
-	Use:   "produce <topic> --message <message>",
+	Use:   "produce <topic> --message <message> [--key <key>] [--header <key=value>]",
 	Short: "Produce messages to a topic",
 	Long:  `Produce messages to a topic`,
 	Run: func(command *cobra.Command, args []string) {

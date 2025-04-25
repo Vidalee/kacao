@@ -13,7 +13,7 @@ import (
 )
 
 var consumeCmd = &cobra.Command{
-	Use:   "consume",
+	Use:   "consume <topic_name> [--offset <offset>]",
 	Short: "Consume messages from a topic",
 	Long:  `Consume messages from a topic`,
 	Run: func(command *cobra.Command, args []string) {
