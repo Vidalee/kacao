@@ -10,13 +10,24 @@ import (
 	"os"
 	"os/signal"
 	"slices"
+	"strings"
 	"syscall"
 )
 
 var messagesCmd = &cobra.Command{
-	Use:   "messages <topic_name> [--limit <limit>]",
+	Use:   "messages <topic_name> [--limit <limit>] [--header <key=value>]",
 	Short: "Get messages from a topic",
-	Long:  `Get messages from a topic`,
+	Long: `Get messages from a topic
+
+This command will retrieve {limit} messages from each partition of the specified topic. Then filter for the {limit} most recent messages.
+
+If you are filtering by header, you may get less than {limit} messages since the filter is applied after the messages are retrieved.
+If multiple headers are provided, all must match. Putting * as the value will match any value.
+
+Example:
+- kacao get messages <topic_name> --limit 10 --header key1=value1 --header key2=*
+Will retrieve 10 messages from each partition of the topic <topic_name> and filter for messages that have a header with key1=value1 and key2 having any value.
+`,
 	Run: func(command *cobra.Command, args []string) {
 		if len(args) != 1 {
 			err := command.Help()
@@ -129,6 +140,43 @@ var messagesCmd = &cobra.Command{
 			records = records[:limit]
 		}
 
+		headers, err := command.Flags().GetStringArray("header")
+		cobra.CheckErr(err)
+		headersMap := make(map[string]string)
+		for _, header := range headers {
+			parts := strings.Split(header, "=")
+			if len(parts) != 2 {
+				_, err = fmt.Fprintf(os.Stderr, "Invalid header format: %s. Expected key=value.\n", header)
+				cobra.CheckErr(err)
+				os.Exit(1)
+			}
+			headersMap[parts[0]] = parts[1]
+		}
+
+		if len(headers) > 0 {
+			var filteredRecords []kgo.Record
+			for _, record := range records {
+				// Prevents empty record header slice to be considered as a match
+				match := len(record.Headers) >= len(headers)
+				if !match {
+					continue
+				}
+				for _, recordHeader := range record.Headers {
+					//check map contains key
+					if _, ok := headersMap[recordHeader.Key]; ok {
+						if headersMap[recordHeader.Key] != "*" && string(recordHeader.Value) != headersMap[recordHeader.Key] {
+							match = false
+							break
+						}
+					}
+				}
+				if match {
+					filteredRecords = append(filteredRecords, record)
+				}
+			}
+			records = filteredRecords
+		}
+
 		for _, record := range records {
 			fmt.Printf("Topic: %s, Partition: %d, Offset: %d, Key: %s, Value: %s\n", record.Topic, record.Partition, record.Offset, string(record.Key), string(record.Value))
 			for _, header := range record.Headers {
@@ -139,7 +187,8 @@ var messagesCmd = &cobra.Command{
 }
 
 func init() {
-	messagesCmd.Flags().Int64("limit", 10, "Limit the number of messages to get.")
+	messagesCmd.Flags().Int64P("limit", "l", 10, "Limit the number of messages to get.")
+	messagesCmd.Flags().StringArrayP("header", "H", []string{}, "Filter messages by header, example: --header key=value.")
 
 	getCmd.AddCommand(messagesCmd)
 }

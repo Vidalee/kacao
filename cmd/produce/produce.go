@@ -67,9 +67,9 @@ var produceCmd = &cobra.Command{
 }
 
 func init() {
-	produceCmd.Flags().StringArray("header", []string{}, "Header to add to the message, example: --header key=value")
-	produceCmd.Flags().String("key", "", "Key of the message")
-	produceCmd.Flags().String("message", "", "Message to produce")
+	produceCmd.Flags().StringArrayP("header", "H", []string{}, "Header to add to the message, example: --header key=value")
+	produceCmd.Flags().StringP("key", "k", "", "Key of the message")
+	produceCmd.Flags().StringP("message", "m", "", "Message to produce")
 
 	err := produceCmd.MarkFlagRequired("message")
 	cobra.CheckErr(err)
