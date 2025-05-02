@@ -2,13 +2,11 @@ package config
 
 import (
 	"bytes"
-	"fmt"
 	"sort"
 	"strings"
 	"testing"
 
 	"github.com/Vidalee/kacao/cmd"
-	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -97,9 +95,6 @@ func TestGetContexts(t *testing.T) {
 			tempDir := SetupTest(t, tt.testConfig)
 			defer CleanupTest(t, tempDir)
 
-			// Debug: Check Viper state
-			fmt.Printf("Viper contexts: %v\n", viper.Get("contexts"))
-
 			var buf bytes.Buffer
 			cmd.RootCmd.SetOut(&buf)
 			cmd.RootCmd.SetErr(&buf)
@@ -108,8 +103,6 @@ func TestGetContexts(t *testing.T) {
 			err := cmd.RootCmd.Execute()
 
 			output := buf.String()
-			fmt.Printf("Command output: %q\n", output)
-
 			if tt.expectedError {
 				assert.Error(t, err)
 				firstLine := strings.Split(output, "\n")[0]
@@ -119,12 +112,10 @@ func TestGetContexts(t *testing.T) {
 				if tt.checkHelp {
 					assert.Contains(t, output, tt.expectedOutput)
 				} else if strings.HasPrefix(tt.expectedOutput, "Contexts defined in the configuration:") {
-					// Handle unordered context output
 					actualLines := strings.Split(strings.TrimSpace(output), "\n")
 					expectedLines := strings.Split(strings.TrimSpace(tt.expectedOutput), "\n")
 					assert.Equal(t, expectedLines[0], actualLines[0]) // header
 
-					// Sort the context lines (skip header)
 					actualContexts := actualLines[1:]
 					expectedContexts := expectedLines[1:]
 					sort.Strings(actualContexts)

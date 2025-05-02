@@ -2,13 +2,11 @@ package config
 
 import (
 	"bytes"
-	"fmt"
 	"sort"
 	"strings"
 	"testing"
 
 	"github.com/Vidalee/kacao/cmd"
-	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -80,9 +78,6 @@ func TestGetClusters(t *testing.T) {
 			tempDir := SetupTest(t, tt.testConfig)
 			defer CleanupTest(t, tempDir)
 
-			// Debug: Check Viper state
-			fmt.Printf("Viper clusters: %v\n", viper.Get("clusters"))
-
 			var buf bytes.Buffer
 			cmd.RootCmd.SetOut(&buf)
 			cmd.RootCmd.SetErr(&buf)
@@ -91,8 +86,6 @@ func TestGetClusters(t *testing.T) {
 			err := cmd.RootCmd.Execute()
 
 			output := buf.String()
-			fmt.Printf("Command output: %q\n", output)
-
 			if tt.expectedError {
 				assert.Error(t, err)
 				firstLine := strings.Split(output, "\n")[0]
@@ -102,12 +95,10 @@ func TestGetClusters(t *testing.T) {
 				if tt.checkHelp {
 					assert.Contains(t, output, tt.expectedOutput)
 				} else if strings.HasPrefix(tt.expectedOutput, "Clusters defined in the configuration:") {
-					// Handle unordered cluster output
 					actualLines := strings.Split(strings.TrimSpace(output), "\n")
 					expectedLines := strings.Split(strings.TrimSpace(tt.expectedOutput), "\n")
 					assert.Equal(t, expectedLines[0], actualLines[0]) // header
 
-					// Sort the cluster lines (skip header)
 					actualClusters := actualLines[1:]
 					expectedClusters := expectedLines[1:]
 					sort.Strings(actualClusters)
