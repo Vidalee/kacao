@@ -4,29 +4,25 @@ import (
 	"fmt"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"os"
 )
 
 var deleteContextCmd = &cobra.Command{
 	Use:   "delete-context <name>",
 	Short: "Delete the specified context from the Kacao configuration",
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		if len(args) == 0 {
-			err := cmd.Help()
-			cobra.CheckErr(err)
-			return
+			return cmd.Help()
 		}
 		contextName := args[0]
 
 		if !viper.IsSet("contexts." + contextName) {
-			fmt.Printf("Context '%s' does not exist in the configuration.\n", contextName)
-			os.Exit(1)
+			return fmt.Errorf("context '%s' does not exist in the configuration", contextName)
 		}
+
 		contexts := viper.GetStringMap("contexts")
 		delete(contexts, contextName)
 		viper.Set("contexts", contexts)
-		err := viper.WriteConfig()
-		cobra.CheckErr(err)
+		return viper.WriteConfig()
 	},
 }
 

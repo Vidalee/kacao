@@ -4,30 +4,26 @@ import (
 	"fmt"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"os"
 )
 
 var deleteClusterCmd = &cobra.Command{
 	Use:   "delete-cluster <name>",
 	Short: "Delete the specified cluster from the Kacao configuration",
 	Long:  `Delete the specified cluster from the Kacao configuration`,
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		if len(args) == 0 {
-			err := cmd.Help()
-			cobra.CheckErr(err)
-			return
+			return cmd.Help()
 		}
 		clusterName := args[0]
 
 		if !viper.IsSet("clusters." + clusterName) {
-			fmt.Printf("Cluster '%s' does not exist in the configuration.\n", clusterName)
-			os.Exit(1)
+			return fmt.Errorf("cluster '%s' does not exist in the configuration", clusterName)
 		}
+
 		clusters := viper.GetStringMap("clusters")
 		delete(clusters, clusterName)
 		viper.Set("clusters", clusters)
-		err := viper.WriteConfig()
-		cobra.CheckErr(err)
+		return viper.WriteConfig()
 	},
 }
 

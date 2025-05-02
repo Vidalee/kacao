@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"os"
 )
 
 var setClusterCmd = &cobra.Command{
@@ -18,35 +17,30 @@ For local development:
 For production:
 - kacao config set-cluster production --bootstrap-servers broker1:9092,broker2:9092,broker3:9092`,
 	Args: cobra.MaximumNArgs(1),
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		if len(args) == 0 {
-			err := cmd.Help()
-			cobra.CheckErr(err)
-			return
+			return cmd.Help()
 		}
 
 		clusterName := args[0]
 		bootstrapServers, err := cmd.Flags().GetStringSlice("bootstrap-servers")
 		cobra.CheckErr(err)
+		fmt.Printf("flags: %v\n", bootstrapServers)
 
 		if !isValidClusterName(clusterName) {
-			fmt.Println("Error: Cluster name can only contain alphanumerical characters and underscores, and must start with a letter")
-			os.Exit(1)
+			return fmt.Errorf("cluster name can only contain alphanumerical characters, hyphens, and underscores, and must start with a letter")
 		}
 
-		fmt.Printf("Setting up cluster '%s' with bootstrap servers: %s\n", clusterName, bootstrapServers)
+		_, err = fmt.Fprintf(cmd.OutOrStdout(), "Setting up cluster '%s' with bootstrap servers: %v\n", clusterName, bootstrapServers)
+		cobra.CheckErr(err)
 
 		viper.Set("clusters."+clusterName+".bootstrap-servers", bootstrapServers)
 
 		err = viper.WriteConfig()
 		if err != nil {
-			if os.IsNotExist(err) {
-				err := viper.SafeWriteConfig()
-				cobra.CheckErr(err)
-			} else {
-				cobra.CheckErr(err)
-			}
+			return viper.SafeWriteConfig()
 		}
+		return nil
 	},
 }
 
@@ -62,7 +56,7 @@ func isValidClusterName(name string) bool {
 		return false
 	}
 	for _, char := range name {
-		if !(char >= 'a' && char <= 'z') && char != '_' && !(char >= '0' && char <= '9') {
+		if !(char >= 'a' && char <= 'z') && char != '_' && char != '-' && !(char >= '0' && char <= '9') {
 			return false
 		}
 	}

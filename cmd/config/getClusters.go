@@ -11,20 +11,25 @@ var getClustersCmd = &cobra.Command{
 	Short: "Display clusters defined in the Kacao configuration",
 	Run: func(cmd *cobra.Command, args []string) {
 		if !viper.IsSet("clusters") {
-			fmt.Println("No clusters defined in the configuration.")
+			_, err := fmt.Fprintln(cmd.OutOrStdout(), "No clusters defined in the configuration.")
+			cobra.CheckErr(err)
 			return
 		}
 
 		clusters := viper.GetStringMap("clusters")
 		if len(clusters) == 0 {
-			fmt.Println("No clusters defined in the configuration.")
+			_, err := fmt.Fprintln(cmd.OutOrStdout(), "No clusters defined in the configuration.")
+			cobra.CheckErr(err)
 			return
 		}
 
-		fmt.Println("Clusters defined in the configuration:")
+		_, err := fmt.Fprintln(cmd.OutOrStdout(), "Clusters defined in the configuration:")
+		cobra.CheckErr(err)
+
 		for clusterName, clusterConfig := range clusters {
 			bootstrapServers := clusterConfig.(map[string]interface{})["bootstrap-servers"]
-			fmt.Printf("- %s: %v\n", clusterName, bootstrapServers)
+			_, err := fmt.Fprintf(cmd.OutOrStdout(), "- %s: %v\n", clusterName, bootstrapServers)
+			cobra.CheckErr(err)
 		}
 	},
 }
