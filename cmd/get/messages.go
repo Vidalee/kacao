@@ -66,7 +66,7 @@ Will retrieve 10 messages from each partition of the topic <topic_name> and filt
 		var newOffsets kadm.Offsets = make(map[string]map[int32]kadm.Offset)
 		newOffsets[args[0]] = make(map[int32]kadm.Offset)
 		for _, listedOffset := range committedListedOffsets[args[0]] {
-			var offsetValue int64 = listedOffset.Offset - limit
+			var offsetValue = listedOffset.Offset - limit
 
 			if offsetValue < 0 {
 				offsetValue = 0
