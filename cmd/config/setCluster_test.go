@@ -2,6 +2,7 @@ package config
 
 import (
 	"bytes"
+	"github.com/Vidalee/kacao/test_helpers"
 	"strings"
 	"testing"
 
@@ -14,7 +15,7 @@ func TestSetCluster(t *testing.T) {
 	tests := []struct {
 		name                string
 		args                []string
-		testConfig          TestConfig
+		testConfig          test_helpers.TestConfig
 		expectedError       bool
 		expectedOutput      string
 		checkOutputContains bool
@@ -23,7 +24,7 @@ func TestSetCluster(t *testing.T) {
 		{
 			name:           "successful cluster creation",
 			args:           []string{"config", "set-cluster", "test-cluster", "--bootstrap-servers", "localhost:9092"},
-			testConfig:     TestConfig{},
+			testConfig:     test_helpers.TestConfig{},
 			expectedError:  false,
 			expectedOutput: "Setting up cluster 'test-cluster' with bootstrap servers: [localhost:9092]\n",
 			verifyConfig: func(t *testing.T) {
@@ -35,7 +36,7 @@ func TestSetCluster(t *testing.T) {
 		{
 			name:           "multiple bootstrap servers",
 			args:           []string{"config", "set-cluster", "prod-cluster", "--bootstrap-servers", "kafka1:9092,kafka2:9092,kafka3:9092"},
-			testConfig:     TestConfig{},
+			testConfig:     test_helpers.TestConfig{},
 			expectedError:  false,
 			expectedOutput: "Setting up cluster 'prod-cluster' with bootstrap servers: [kafka1:9092 kafka2:9092 kafka3:9092]\n",
 			verifyConfig: func(t *testing.T) {
@@ -47,21 +48,21 @@ func TestSetCluster(t *testing.T) {
 		{
 			name:           "invalid cluster name - starts with number",
 			args:           []string{"config", "set-cluster", "1invalid", "--bootstrap-servers", "localhost:9092"},
-			testConfig:     TestConfig{},
+			testConfig:     test_helpers.TestConfig{},
 			expectedError:  true,
 			expectedOutput: "Error: cluster name can only contain alphanumerical characters, hyphens, and underscores, and must start with a letter",
 		},
 		{
 			name:           "invalid cluster name - special characters",
 			args:           []string{"config", "set-cluster", "invalid@name", "--bootstrap-servers", "localhost:9092"},
-			testConfig:     TestConfig{},
+			testConfig:     test_helpers.TestConfig{},
 			expectedError:  true,
 			expectedOutput: "Error: cluster name can only contain alphanumerical characters, hyphens, and underscores, and must start with a letter",
 		},
 		{
 			name: "update existing cluster",
 			args: []string{"config", "set-cluster", "existing-cluster", "--bootstrap-servers", "new-server:9092"},
-			testConfig: TestConfig{
+			testConfig: test_helpers.TestConfig{
 				Clusters: map[string]map[string]interface{}{
 					"existing-cluster": {
 						"bootstrap-servers": []string{"old-server:9092"},
@@ -79,7 +80,7 @@ func TestSetCluster(t *testing.T) {
 		{
 			name:                "no args shows help",
 			args:                []string{"config", "set-cluster"},
-			testConfig:          TestConfig{},
+			testConfig:          test_helpers.TestConfig{},
 			expectedError:       true,
 			expectedOutput:      "Error: required flag(s) \"bootstrap-servers\" not set",
 			checkOutputContains: true,
@@ -87,14 +88,14 @@ func TestSetCluster(t *testing.T) {
 		{
 			name:           "missing bootstrap servers",
 			args:           []string{"config", "set-cluster", "test-cluster"},
-			testConfig:     TestConfig{},
+			testConfig:     test_helpers.TestConfig{},
 			expectedError:  true,
 			expectedOutput: "Error: required flag(s) \"bootstrap-servers\" not set",
 		},
 		{
 			name:                "empty bootstrap servers",
 			args:                []string{"config", "set-cluster", "test-cluster", "--bootstrap-servers", ""},
-			testConfig:          TestConfig{},
+			testConfig:          test_helpers.TestConfig{},
 			expectedError:       true,
 			expectedOutput:      "Error: bootstrap-servers flag cannot be empty",
 			checkOutputContains: true,
@@ -103,8 +104,9 @@ func TestSetCluster(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tempDir := SetupTest(t, tt.testConfig)
-			defer CleanupTest(t, tempDir)
+			tempDir := test_helpers.SetupTest(t, tt.testConfig)
+			test_helpers.ResetSubCommandFlagValues(cmd.RootCmd)
+			defer test_helpers.CleanupTest(t, tempDir)
 
 			var buf bytes.Buffer
 			cmd.RootCmd.SetOut(&buf)

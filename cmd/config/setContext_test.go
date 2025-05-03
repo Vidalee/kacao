@@ -2,6 +2,7 @@ package config
 
 import (
 	"bytes"
+	"github.com/Vidalee/kacao/test_helpers"
 	"testing"
 
 	"github.com/Vidalee/kacao/cmd"
@@ -10,7 +11,7 @@ import (
 )
 
 func TestSetContext(t *testing.T) {
-	testConfig := TestConfig{
+	testConfig := test_helpers.TestConfig{
 		Clusters: map[string]map[string]interface{}{
 			"test-cluster": {
 				"bootstrap-servers": []string{"localhost:9092"},
@@ -104,8 +105,9 @@ func TestSetContext(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tempDir := SetupTest(t, testConfig)
-			defer CleanupTest(t, tempDir)
+			tempDir := test_helpers.SetupTest(t, testConfig)
+			test_helpers.ResetSubCommandFlagValues(cmd.RootCmd)
+			defer test_helpers.CleanupTest(t, tempDir)
 
 			var buf bytes.Buffer
 			cmd.RootCmd.SetOut(&buf)
@@ -146,7 +148,7 @@ func TestSetContext(t *testing.T) {
 }
 
 func TestSetContextWithoutExistingConfig(t *testing.T) {
-	testConfig := TestConfig{
+	testConfig := test_helpers.TestConfig{
 		Clusters: map[string]map[string]interface{}{
 			"test-cluster": {
 				"bootstrap-servers": []string{"localhost:9092"},
@@ -154,8 +156,9 @@ func TestSetContextWithoutExistingConfig(t *testing.T) {
 		},
 	}
 
-	tempDir := SetupTest(t, testConfig)
-	defer CleanupTest(t, tempDir)
+	tempDir := test_helpers.SetupTest(t, testConfig)
+	test_helpers.ResetSubCommandFlagValues(cmd.RootCmd)
+	defer test_helpers.CleanupTest(t, tempDir)
 
 	var buf bytes.Buffer
 	cmd.RootCmd.SetOut(&buf)

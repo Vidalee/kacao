@@ -1,11 +1,10 @@
-package config
+package test_helpers
 
 import (
 	"github.com/spf13/pflag"
 	"os"
 	"testing"
 
-	"github.com/Vidalee/kacao/cmd"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
@@ -47,18 +46,10 @@ func SetupTest(t *testing.T, config TestConfig) string {
 	err = viper.SafeWriteConfig()
 	assert.NoError(t, err)
 
-	cmd.RootCmd = &cobra.Command{
-		Use:   "kacao",
-		Short: "Kafka CLI",
-		Long:  `A CLI to manage and interact with Kafka`,
-	}
-	cmd.RootCmd.AddCommand(configCmd)
-
-	resetSubCommandFlagValues(cmd.RootCmd)
-
 	return tempDir
 }
-func resetSubCommandFlagValues(root *cobra.Command) {
+
+func ResetSubCommandFlagValues(root *cobra.Command) {
 	for _, c := range root.Commands() {
 		c.Flags().VisitAll(func(f *pflag.Flag) {
 			if f.Changed {
@@ -73,7 +64,7 @@ func resetSubCommandFlagValues(root *cobra.Command) {
 				f.Changed = false
 			}
 		})
-		resetSubCommandFlagValues(c)
+		ResetSubCommandFlagValues(c)
 	}
 }
 

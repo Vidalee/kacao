@@ -2,6 +2,7 @@ package config
 
 import (
 	"bytes"
+	"github.com/Vidalee/kacao/test_helpers"
 	"strings"
 	"testing"
 
@@ -11,7 +12,7 @@ import (
 )
 
 func TestDeleteContext(t *testing.T) {
-	testConfig := TestConfig{
+	testConfig := test_helpers.TestConfig{
 		Clusters: map[string]map[string]interface{}{
 			"test-cluster": {
 				"bootstrap-servers": []string{"localhost:9092"},
@@ -55,8 +56,9 @@ func TestDeleteContext(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tempDir := SetupTest(t, testConfig)
-			defer CleanupTest(t, tempDir)
+			tempDir := test_helpers.SetupTest(t, testConfig)
+			test_helpers.ResetSubCommandFlagValues(cmd.RootCmd)
+			defer test_helpers.CleanupTest(t, tempDir)
 
 			var buf bytes.Buffer
 			cmd.RootCmd.SetOut(&buf)

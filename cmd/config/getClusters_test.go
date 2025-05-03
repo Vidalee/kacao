@@ -2,6 +2,7 @@ package config
 
 import (
 	"bytes"
+	"github.com/Vidalee/kacao/test_helpers"
 	"sort"
 	"strings"
 	"testing"
@@ -14,7 +15,7 @@ func TestGetClusters(t *testing.T) {
 	tests := []struct {
 		name           string
 		args           []string
-		testConfig     TestConfig
+		testConfig     test_helpers.TestConfig
 		expectedError  bool
 		expectedOutput string
 		checkHelp      bool
@@ -22,7 +23,7 @@ func TestGetClusters(t *testing.T) {
 		{
 			name: "list clusters",
 			args: []string{"config", "get-clusters"},
-			testConfig: TestConfig{
+			testConfig: test_helpers.TestConfig{
 				Clusters: map[string]map[string]interface{}{
 					"test-cluster": {
 						"bootstrap-servers": []string{"localhost:9092"},
@@ -35,7 +36,7 @@ func TestGetClusters(t *testing.T) {
 		{
 			name: "multiple clusters",
 			args: []string{"config", "get-clusters"},
-			testConfig: TestConfig{
+			testConfig: test_helpers.TestConfig{
 				Clusters: map[string]map[string]interface{}{
 					"prod-cluster": {
 						"bootstrap-servers": []string{"kafka-prod-1:9092", "kafka-prod-2:9092", "kafka-prod-3:9092"},
@@ -58,7 +59,7 @@ func TestGetClusters(t *testing.T) {
 		{
 			name: "clusters set but empty",
 			args: []string{"config", "get-clusters"},
-			testConfig: TestConfig{
+			testConfig: test_helpers.TestConfig{
 				Clusters: map[string]map[string]interface{}{},
 			},
 			expectedError:  false,
@@ -67,7 +68,7 @@ func TestGetClusters(t *testing.T) {
 		{
 			name:           "clusters not set",
 			args:           []string{"config", "get-clusters"},
-			testConfig:     TestConfig{},
+			testConfig:     test_helpers.TestConfig{},
 			expectedError:  false,
 			expectedOutput: "No clusters defined in the configuration.\n",
 		},
@@ -75,8 +76,9 @@ func TestGetClusters(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tempDir := SetupTest(t, tt.testConfig)
-			defer CleanupTest(t, tempDir)
+			tempDir := test_helpers.SetupTest(t, tt.testConfig)
+			test_helpers.ResetSubCommandFlagValues(cmd.RootCmd)
+			defer test_helpers.CleanupTest(t, tempDir)
 
 			var buf bytes.Buffer
 			cmd.RootCmd.SetOut(&buf)
