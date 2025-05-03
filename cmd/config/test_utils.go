@@ -44,10 +44,6 @@ func SetupTest(t *testing.T, config TestConfig) string {
 		viper.Set("contexts", map[string]interface{}{})
 	}
 
-	if config.CurrentContext != "" {
-		viper.Set("current-context", config.CurrentContext)
-	}
-
 	err = viper.SafeWriteConfig()
 	assert.NoError(t, err)
 
@@ -67,13 +63,13 @@ func resetSubCommandFlagValues(root *cobra.Command) {
 		c.Flags().VisitAll(func(f *pflag.Flag) {
 			if f.Changed {
 				resetValue := f.DefValue
-				if f.Value.Type() == "stringSlice" {
-					resetValue = ""
-				}
-				err := f.Value.Set(resetValue)
-				if err != nil {
-					return
-				}
+				//if f.Value.Type() == "stringSlice" {
+				//	resetValue = ""
+				//}
+				_ = f.Value.Set(resetValue)
+				//if err != nil {
+				//	return
+				//}
 				f.Changed = false
 			}
 		})
