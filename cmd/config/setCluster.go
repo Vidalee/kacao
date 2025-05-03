@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"strings"
 )
 
 var setClusterCmd = &cobra.Command{
@@ -18,14 +19,14 @@ For production:
 - kacao config set-cluster production --bootstrap-servers broker1:9092,broker2:9092,broker3:9092`,
 	Args: cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if len(args) == 0 {
-			return cmd.Help()
-		}
-
 		clusterName := args[0]
-		bootstrapServers, err := cmd.Flags().GetStringSlice("bootstrap-servers")
+		bootstrapServersString, err := cmd.Flags().GetString("bootstrap-servers")
 		cobra.CheckErr(err)
-		fmt.Printf("flags: %v\n", bootstrapServers)
+
+		if len(bootstrapServersString) == 0 {
+			return fmt.Errorf("bootstrap-servers flag cannot be empty")
+		}
+		bootstrapServers := strings.Split(bootstrapServersString, ",")
 
 		if !isValidClusterName(clusterName) {
 			return fmt.Errorf("cluster name can only contain alphanumerical characters, hyphens, and underscores, and must start with a letter")
@@ -36,16 +37,12 @@ For production:
 
 		viper.Set("clusters."+clusterName+".bootstrap-servers", bootstrapServers)
 
-		err = viper.WriteConfig()
-		if err != nil {
-			return viper.SafeWriteConfig()
-		}
-		return nil
+		return viper.WriteConfig()
 	},
 }
 
 func init() {
-	setClusterCmd.Flags().StringSlice("bootstrap-servers", []string{}, "Comma-separated list of Kafka bootstrap servers")
+	setClusterCmd.Flags().String("bootstrap-servers", "", "Comma-separated list of Kafka bootstrap servers")
 	err := setClusterCmd.MarkFlagRequired("bootstrap-servers")
 	cobra.CheckErr(err)
 	configCmd.AddCommand(setClusterCmd)
