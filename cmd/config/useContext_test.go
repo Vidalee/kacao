@@ -57,8 +57,7 @@ func TestUseContext(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			tempDir := test_helpers.SetupTest(t, testConfig)
-			test_helpers.ResetSubCommandFlagValues(cmd.RootCmd)
-			defer test_helpers.CleanupTest(t, tempDir)
+			defer test_helpers.CleanupTestConfig(t, tempDir)
 
 			var buf bytes.Buffer
 			cmd.RootCmd.SetOut(&buf)

@@ -1,14 +1,22 @@
 package test_helpers
 
 import (
+	"bytes"
+	"context"
+	"github.com/Vidalee/kacao/cmd"
 	"github.com/spf13/pflag"
+	"github.com/twmb/franz-go/pkg/kadm"
+	"github.com/twmb/franz-go/pkg/kgo"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 )
+
+const TestContainerKafkaPort = "53585"
 
 type TestConfig struct {
 	Clusters       map[string]map[string]interface{}
@@ -68,8 +76,47 @@ func ResetSubCommandFlagValues(root *cobra.Command) {
 	}
 }
 
-func CleanupTest(t *testing.T, tempDir string) {
+func CleanupTestConfig(t *testing.T, tempDir string) {
 	viper.Reset()
 	err := os.RemoveAll(tempDir)
 	assert.NoError(t, err)
+}
+
+func CleanupKafkaCluster(t *testing.T, client *kgo.Client, adminClient *kadm.Client, ctx context.Context) {
+
+	topicsBeforeCmd, err := adminClient.ListTopics(ctx)
+	assert.NoError(t, err)
+
+	var topicNames []string
+	for _, topicDetail := range topicsBeforeCmd {
+		topicNames = append(topicNames, topicDetail.Topic)
+	}
+	if len(topicNames) == 0 {
+		return
+	}
+
+	deleteTopicResponses, err := adminClient.DeleteTopics(ctx, topicNames...)
+	assert.NoError(t, err)
+	for _, topicResponse := range deleteTopicResponses {
+		assert.NoError(t, topicResponse.Err)
+	}
+	client.PurgeTopicsFromClient(topicNames...)
+
+	// Wait for topic deletion, timeout is 15 seconds (kafka default)
+	// I found that 2 seconds is enough for our tests, but if topics still exist
+	// when fetching just after cleanup, you might want to wait longer
+	time.Sleep(2 * time.Second)
+}
+
+func ExecuteCommandWrapper(args []string) (string, error) {
+	var buf bytes.Buffer
+	ResetSubCommandFlagValues(cmd.RootCmd)
+
+	cmd.RootCmd.SetOut(&buf)
+	cmd.RootCmd.SetErr(&buf)
+	cmd.RootCmd.SetArgs(args)
+	err := cmd.RootCmd.Execute()
+
+	output := buf.String()
+	return output, err
 }
