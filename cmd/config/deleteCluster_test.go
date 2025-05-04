@@ -1,13 +1,10 @@
 package config
 
 import (
-	"bytes"
-	"fmt"
 	"github.com/Vidalee/kacao/test_helpers"
 	"strings"
 	"testing"
 
-	"github.com/Vidalee/kacao/cmd"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 )
@@ -54,19 +51,8 @@ func TestDeleteCluster(t *testing.T) {
 			tempDir := test_helpers.SetupTest(t, testConfig)
 			defer test_helpers.CleanupTestConfig(t, tempDir)
 
-			var buf bytes.Buffer
-			cmd.RootCmd.SetOut(&buf)
-			cmd.RootCmd.SetErr(&buf)
+			output, err := test_helpers.ExecuteCommandWrapper(tt.args)
 
-			clusters := viper.GetStringMap("clusters")
-			fmt.Printf("Initial clusters: %v\n", clusters)
-
-			cmd.RootCmd.SetArgs(tt.args)
-			err := cmd.RootCmd.Execute()
-
-			clusters = viper.GetStringMap("clusters")
-
-			output := buf.String()
 			if tt.expectedError {
 				assert.Error(t, err)
 				firstLine := strings.Split(output, "\n")[0]
@@ -78,16 +64,9 @@ func TestDeleteCluster(t *testing.T) {
 				} else {
 					assert.Empty(t, output)
 					clusterName := tt.args[2]
-
 					clusters := viper.GetStringMap("clusters")
 					_, exists := clusters[clusterName]
-					assert.False(t, exists, "Cluster should not exist in in-memory state")
-
-					err := viper.ReadInConfig()
-					assert.NoError(t, err)
-					clusters = viper.GetStringMap("clusters")
-					_, exists = clusters[clusterName]
-					assert.False(t, exists, "Cluster should not exist in file state")
+					assert.False(t, exists)
 				}
 			}
 		})

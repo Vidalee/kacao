@@ -1,13 +1,11 @@
 package config
 
 import (
-	"bytes"
 	"github.com/Vidalee/kacao/test_helpers"
 	"sort"
 	"strings"
 	"testing"
 
-	"github.com/Vidalee/kacao/cmd"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -96,14 +94,8 @@ func TestGetContexts(t *testing.T) {
 			tempDir := test_helpers.SetupTest(t, tt.testConfig)
 			defer test_helpers.CleanupTestConfig(t, tempDir)
 
-			var buf bytes.Buffer
-			cmd.RootCmd.SetOut(&buf)
-			cmd.RootCmd.SetErr(&buf)
+			output, err := test_helpers.ExecuteCommandWrapper(tt.args)
 
-			cmd.RootCmd.SetArgs(tt.args)
-			err := cmd.RootCmd.Execute()
-
-			output := buf.String()
 			if tt.expectedError {
 				assert.Error(t, err)
 				firstLine := strings.Split(output, "\n")[0]

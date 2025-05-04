@@ -57,25 +57,6 @@ func SetupTest(t *testing.T, config TestConfig) string {
 	return tempDir
 }
 
-func ResetSubCommandFlagValues(root *cobra.Command) {
-	for _, c := range root.Commands() {
-		c.Flags().VisitAll(func(f *pflag.Flag) {
-			if f.Changed {
-				resetValue := f.DefValue
-				//if f.Value.Type() == "stringSlice" {
-				//	resetValue = ""
-				//}
-				_ = f.Value.Set(resetValue)
-				//if err != nil {
-				//	return
-				//}
-				f.Changed = false
-			}
-		})
-		ResetSubCommandFlagValues(c)
-	}
-}
-
 func CleanupTestConfig(t *testing.T, tempDir string) {
 	viper.Reset()
 	err := os.RemoveAll(tempDir)
@@ -119,4 +100,24 @@ func ExecuteCommandWrapper(args []string) (string, error) {
 
 	output := buf.String()
 	return output, err
+}
+
+func ResetSubCommandFlagValues(root *cobra.Command) {
+	for _, c := range root.Commands() {
+		c.Flags().VisitAll(func(f *pflag.Flag) {
+			if f.Changed {
+				resetValue := f.DefValue
+				//if f.Value.Type() == "stringSlice" {
+				//	resetValue = ""
+				//}
+
+				_ = f.Value.Set(resetValue)
+				//if err != nil {
+				//	return
+				//}
+				f.Changed = false
+			}
+		})
+		ResetSubCommandFlagValues(c)
+	}
 }

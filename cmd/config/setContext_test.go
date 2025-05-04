@@ -1,11 +1,9 @@
 package config
 
 import (
-	"bytes"
 	"github.com/Vidalee/kacao/test_helpers"
 	"testing"
 
-	"github.com/Vidalee/kacao/cmd"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 )
@@ -108,14 +106,8 @@ func TestSetContext(t *testing.T) {
 			tempDir := test_helpers.SetupTest(t, testConfig)
 			defer test_helpers.CleanupTestConfig(t, tempDir)
 
-			var buf bytes.Buffer
-			cmd.RootCmd.SetOut(&buf)
-			cmd.RootCmd.SetErr(&buf)
+			output, err := test_helpers.ExecuteCommandWrapper(tt.args)
 
-			cmd.RootCmd.SetArgs(tt.args)
-			err := cmd.RootCmd.Execute()
-
-			output := buf.String()
 			if tt.expectedError {
 				assert.Error(t, err)
 				assert.Contains(t, output, tt.expectedOutput)
@@ -158,15 +150,10 @@ func TestSetContextWithoutExistingConfig(t *testing.T) {
 	tempDir := test_helpers.SetupTest(t, testConfig)
 	defer test_helpers.CleanupTestConfig(t, tempDir)
 
-	var buf bytes.Buffer
-	cmd.RootCmd.SetOut(&buf)
-	cmd.RootCmd.SetErr(&buf)
-
-	cmd.RootCmd.SetArgs([]string{"config", "set-context", "first-context", "--cluster", "test-cluster", "--consumer-group", "first-group"})
-	err := cmd.RootCmd.Execute()
+	output, err := test_helpers.ExecuteCommandWrapper([]string{"config", "set-context", "first-context", "--cluster", "test-cluster", "--consumer-group", "first-group"})
 
 	assert.NoError(t, err)
-	assert.Equal(t, "Defined context 'first-context'\n", buf.String())
+	assert.Equal(t, "Defined context 'first-context'\n", output)
 
 	assert.True(t, viper.IsSet("contexts.first-context"))
 	assert.Equal(t, "test-cluster", viper.GetString("contexts.first-context.cluster"))
