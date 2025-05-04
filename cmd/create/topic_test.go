@@ -144,54 +144,54 @@ func TestCreateTopic(t *testing.T) {
 			if tt.expectedError {
 				assert.Error(t, err)
 				assert.Contains(t, output, tt.expectedOutput)
-			} else {
-				assert.NoError(t, err)
-				if tt.checkHelp {
-					assert.Contains(t, output, tt.expectedOutput)
+				return
+			}
+			assert.NoError(t, err)
+			if tt.checkHelp {
+				assert.Contains(t, output, tt.expectedOutput)
+				return
+			}
+			assert.Contains(t, output, tt.expectedOutput)
+
+			topicsAfterCmd, err := adminClient.ListTopics(ctx)
+			assert.NoError(t, err)
+
+			var createdTopics []kadm.TopicDetail
+			for _, topicDetail := range topicsAfterCmd {
+				for _, topicName := range tt.topicNames {
+					if topicDetail.Topic == topicName {
+						createdTopics = append(createdTopics, topicDetail)
+						break
+					}
+				}
+			}
+
+			assert.Equal(t, len(tt.topicNames), len(createdTopics), "Expected %d topics to be created but got %d", len(tt.topicNames), len(createdTopics))
+			for _, createdTopic := range createdTopics {
+				topicExistsAfter := false
+				for _, topicName := range tt.topicNames {
+					if createdTopic.Topic == topicName {
+						topicExistsAfter = true
+						break
+					}
+				}
+
+				if topicExistsAfter {
+					assert.Equal(t, tt.partitions, len(createdTopic.Partitions), "Expected %d partitions for topic %s but got %d", tt.partitions, createdTopic.Topic, len(createdTopic.Partitions))
 				} else {
-					assert.Contains(t, output, tt.expectedOutput)
+					assert.Fail(t, "Topic '%s' was created but it wasn't expected", createdTopic.Topic)
+				}
+			}
 
-					topicsAfterCmd, err := adminClient.ListTopics(ctx)
-					assert.NoError(t, err)
-
-					var createdTopics []kadm.TopicDetail
-					for _, topicDetail := range topicsAfterCmd {
-						for _, topicName := range tt.topicNames {
-							if topicDetail.Topic == topicName {
-								createdTopics = append(createdTopics, topicDetail)
-								break
-							}
-						}
-					}
-
-					assert.Equal(t, len(tt.topicNames), len(createdTopics), "Expected %d topics to be created but got %d", len(tt.topicNames), len(createdTopics))
-					for _, createdTopic := range createdTopics {
-						topicExistsAfter := false
-						for _, topicName := range tt.topicNames {
-							if createdTopic.Topic == topicName {
-								topicExistsAfter = true
-								break
-							}
-						}
-
-						if topicExistsAfter {
-							assert.Equal(t, tt.partitions, len(createdTopic.Partitions), "Expected %d partitions for topic %s but got %d", tt.partitions, createdTopic.Topic, len(createdTopic.Partitions))
-						} else {
-							assert.Fail(t, "Topic '%s' was created but it wasn't expected", createdTopic.Topic)
-						}
-					}
-
-					if tt.options != nil {
-						resourceConfigs, err := adminClient.DescribeTopicConfigs(ctx, tt.topicNames...)
-						assert.NoError(t, err)
-						for _, resourceConfig := range resourceConfigs {
-							for _, topicName := range tt.topicNames {
-								if resourceConfig.Name == topicName {
-									for _, config := range resourceConfig.Configs {
-										if _, ok := tt.options[config.Key]; ok {
-											assert.Equal(t, tt.options[config.Key], *config.Value, "Expected config '%s' to be '%s' but got '%s'", config.Key, tt.options[config.Key], *config.Value)
-										}
-									}
+			if tt.options != nil {
+				resourceConfigs, err := adminClient.DescribeTopicConfigs(ctx, tt.topicNames...)
+				assert.NoError(t, err)
+				for _, resourceConfig := range resourceConfigs {
+					for _, topicName := range tt.topicNames {
+						if resourceConfig.Name == topicName {
+							for _, config := range resourceConfig.Configs {
+								if _, ok := tt.options[config.Key]; ok {
+									assert.Equal(t, tt.options[config.Key], *config.Value, "Expected config '%s' to be '%s' but got '%s'", config.Key, tt.options[config.Key], *config.Value)
 								}
 							}
 						}
