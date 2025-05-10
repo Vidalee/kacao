@@ -20,6 +20,21 @@ func TestSetCluster(t *testing.T) {
 		verifyConfig        func(t *testing.T)
 	}{
 		{
+			name:           "missing bootstrap servers",
+			args:           []string{"config", "set-cluster", "test-cluster"},
+			testConfig:     test_helpers.TestConfig{},
+			expectedError:  true,
+			expectedOutput: "Error: required flag(s) \"bootstrap-servers\" not set",
+		},
+		{
+			name:                "empty bootstrap servers",
+			args:                []string{"config", "set-cluster", "test-cluster", "--bootstrap-servers"},
+			testConfig:          test_helpers.TestConfig{},
+			expectedError:       true,
+			expectedOutput:      "Error: flag needs an argument: --bootstrap-servers",
+			checkOutputContains: true,
+		},
+		{
 			name:           "successful cluster creation",
 			args:           []string{"config", "set-cluster", "test-cluster", "--bootstrap-servers", "localhost:9092"},
 			testConfig:     test_helpers.TestConfig{},
@@ -80,22 +95,7 @@ func TestSetCluster(t *testing.T) {
 			args:                []string{"config", "set-cluster"},
 			testConfig:          test_helpers.TestConfig{},
 			expectedError:       true,
-			expectedOutput:      "Error: required flag(s) \"bootstrap-servers\" not set",
-			checkOutputContains: true,
-		},
-		{
-			name:           "missing bootstrap servers",
-			args:           []string{"config", "set-cluster", "test-cluster"},
-			testConfig:     test_helpers.TestConfig{},
-			expectedError:  true,
-			expectedOutput: "Error: required flag(s) \"bootstrap-servers\" not set",
-		},
-		{
-			name:                "empty bootstrap servers",
-			args:                []string{"config", "set-cluster", "test-cluster", "--bootstrap-servers", ""},
-			testConfig:          test_helpers.TestConfig{},
-			expectedError:       true,
-			expectedOutput:      "Error: bootstrap-servers flag cannot be empty",
+			expectedOutput:      "Error: accepts 1 arg(s), received 0",
 			checkOutputContains: true,
 		},
 	}

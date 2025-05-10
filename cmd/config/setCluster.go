@@ -16,7 +16,7 @@ For local development:
 
 For production:
 - kacao config set-cluster production --bootstrap-servers broker1:9092,broker2:9092,broker3:9092`,
-	Args: cobra.MaximumNArgs(1),
+	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		clusterName := args[0]
 		bootstrapServers, err := cmd.Flags().GetStringSlice("bootstrap-servers")
