@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"strings"
 )
 
 var setClusterCmd = &cobra.Command{
@@ -20,13 +19,8 @@ For production:
 	Args: cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		clusterName := args[0]
-		bootstrapServersString, err := cmd.Flags().GetString("bootstrap-servers")
+		bootstrapServers, err := cmd.Flags().GetStringSlice("bootstrap-servers")
 		cobra.CheckErr(err)
-
-		if len(bootstrapServersString) == 0 {
-			return fmt.Errorf("bootstrap-servers flag cannot be empty")
-		}
-		bootstrapServers := strings.Split(bootstrapServersString, ",")
 
 		if !isValidClusterName(clusterName) {
 			return fmt.Errorf("cluster name can only contain alphanumerical characters, hyphens, and underscores, and must start with a letter")
@@ -42,7 +36,7 @@ For production:
 }
 
 func init() {
-	setClusterCmd.Flags().String("bootstrap-servers", "", "Comma-separated list of Kafka bootstrap servers")
+	setClusterCmd.Flags().StringSlice("bootstrap-servers", []string{}, "Comma-separated list of Kafka bootstrap servers")
 	err := setClusterCmd.MarkFlagRequired("bootstrap-servers")
 	cobra.CheckErr(err)
 	configCmd.AddCommand(setClusterCmd)

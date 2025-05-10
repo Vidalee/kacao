@@ -8,6 +8,8 @@ import (
 	"github.com/twmb/franz-go/pkg/kadm"
 	"github.com/twmb/franz-go/pkg/kgo"
 	"os"
+	"reflect"
+	"strings"
 	"testing"
 	"time"
 
@@ -15,8 +17,6 @@ import (
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 )
-
-const TestContainerKafkaPort = "53585"
 
 type TestConfig struct {
 	Clusters       map[string]map[string]interface{}
@@ -105,18 +105,19 @@ func ExecuteCommandWrapper(args []string) (string, error) {
 func ResetSubCommandFlagValues(root *cobra.Command) {
 	for _, c := range root.Commands() {
 		c.Flags().VisitAll(func(f *pflag.Flag) {
-			if f.Changed {
-				resetValue := f.DefValue
-				//if f.Value.Type() == "stringSlice" {
-				//	resetValue = ""
-				//}
-
-				_ = f.Value.Set(resetValue)
-				//if err != nil {
-				//	return
-				//}
-				f.Changed = false
+			sliceValueType := reflect.TypeOf((*pflag.SliceValue)(nil)).Elem()
+			if reflect.TypeOf(f.Value).Implements(sliceValueType) {
+				defValue := strings.Trim(f.DefValue, "[]")
+				var defValueParts []string
+				// Is the case when empty def value for slices/arrays (f.DefValue = [])
+				if defValue != "" {
+					defValueParts = strings.Split(defValue, ",")
+				}
+				sliceValue, _ := f.Value.(pflag.SliceValue)
+				_ = sliceValue.Replace(defValueParts)
+				return
 			}
+			_ = f.Value.Set(f.DefValue)
 		})
 		ResetSubCommandFlagValues(c)
 	}

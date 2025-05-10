@@ -110,12 +110,10 @@ func TestCreateTopic(t *testing.T) {
 			},
 		},
 		{
-			name:          "successful topic creation with wrong option format options",
-			args:          []string{"create", "topic", "test-topic", "--partitions", "2", "--options", "cleanup.policycompact", "--options", "retention.ms=1000"},
-			expectedError: true,
-			// Can't be accurate on this test because the value will be different when running the test alone or after the others
-			// Since Cobra don't allow cleaning array and slice flags ^^
-			expectedOutput: "invalid option format: ", //cleanup.policycompact. Expected key=value",
+			name:           "successful topic creation with wrong option format options",
+			args:           []string{"create", "topic", "test-topic", "--partitions", "2", "--options", "cleanup.policycompact", "--options", "retention.ms=1000"},
+			expectedError:  true,
+			expectedOutput: "invalid option format: cleanup.policycompact. Expected key=value",
 		},
 	}
 
