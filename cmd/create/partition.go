@@ -21,11 +21,9 @@ Add two partitions to a topic:
 
 You can also specify multiple topics to add partitions to:
 - kacao create partition <topic_name_1> <topic_name_2> --partitions 2`,
-	Run: func(command *cobra.Command, args []string) {
+	RunE: func(command *cobra.Command, args []string) error {
 		if len(args) == 0 {
-			err := command.Help()
-			cobra.CheckErr(err)
-			return
+			return command.Help()
 		}
 
 		boostrapServers, err := cmd.GetCurrentClusterBootstrapServers()
@@ -53,8 +51,7 @@ You can also specify multiple topics to add partitions to:
 
 		for _, topicToAddPartitions := range args {
 			if !slices.Contains(clusterTopicsSlice, topicToAddPartitions) {
-				fmt.Printf("Error: Topic '%s' does not exist in the cluster!\n", topicToAddPartitions)
-				return
+				return fmt.Errorf("topic '%s' does not exist in the cluster!\n", topicToAddPartitions)
 			}
 		}
 
@@ -64,13 +61,22 @@ You can also specify multiple topics to add partitions to:
 		createPartitionsResponse, err := (*kadm.Client).CreatePartitions(adminClient, ctx, partitions, args...)
 		cobra.CheckErr(err)
 
+		failedToCreateAnyPartitions := false
 		for topic, response := range createPartitionsResponse {
 			if response.Err != nil {
-				fmt.Printf("Error creating partitions for topic '%s': %v: %s\n", topic, response.Err, response.ErrMessage)
+				_, err := fmt.Fprintf(command.OutOrStdout(), "Error creating partitions for topic '%s': %v: %s\n", topic, response.Err, response.ErrMessage)
+				cobra.CheckErr(err)
+				failedToCreateAnyPartitions = true
 				continue
 			}
-			fmt.Printf("Successfully created %d partitions for topic '%s'.\n", partitions, topic)
+			_, err := fmt.Fprintf(command.OutOrStdout(), "Successfully created %d partitions for topic '%s'.\n", partitions, topic)
+			cobra.CheckErr(err)
 		}
+
+		if failedToCreateAnyPartitions {
+			return fmt.Errorf("failed to create partitions for some topics")
+		}
+		return nil
 	},
 }
 
