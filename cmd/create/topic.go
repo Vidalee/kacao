@@ -60,16 +60,21 @@ If you create multiple topics at once, they will all have the same number of par
 			return fmt.Errorf("error creating topic(s) '%s': %s", strings.Join(args, ", "), err)
 		}
 
+		failedToCreateAnyTopic := false
 		for _, createTopicResponse := range createTopicsResponses {
 			if createTopicResponse.Err != nil {
 				_, err := fmt.Fprintf(command.OutOrStdout(), "Error creating topic '%s': %s: %s\n", createTopicResponse.Topic, createTopicResponse.Err, createTopicResponse.ErrMessage)
 				cobra.CheckErr(err)
+				failedToCreateAnyTopic = true
 			} else {
 				_, err := fmt.Fprintf(command.OutOrStdout(), "Created topic '%s'\n", createTopicResponse.Topic)
 				cobra.CheckErr(err)
 			}
 		}
 
+		if failedToCreateAnyTopic {
+			return fmt.Errorf("failed to create one or more topics")
+		}
 		return nil
 	},
 }

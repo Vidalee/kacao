@@ -115,6 +115,12 @@ func TestCreateTopic(t *testing.T) {
 			expectedError:  true,
 			expectedOutput: "invalid option format: cleanup.policycompact. Expected key=value",
 		},
+		{
+			name:           "create topic two times",
+			args:           []string{"create", "topic", "test-topic", "test-topic"},
+			expectedError:  true,
+			expectedOutput: "Error creating topic 'test-topic'",
+		},
 	}
 
 	for _, tt := range tests {
@@ -145,12 +151,12 @@ func TestCreateTopic(t *testing.T) {
 				assert.Contains(t, output, tt.expectedOutput)
 				return
 			}
+
 			assert.NoError(t, err)
+			assert.Contains(t, output, tt.expectedOutput)
 			if tt.checkHelp {
-				assert.Contains(t, output, tt.expectedOutput)
 				return
 			}
-			assert.Contains(t, output, tt.expectedOutput)
 
 			topicsAfterCmd, err := adminClient.ListTopics(ctx)
 			assert.NoError(t, err)
