@@ -1,4 +1,4 @@
-package get
+package delete
 
 import (
 	"github.com/Vidalee/kacao/cmd"

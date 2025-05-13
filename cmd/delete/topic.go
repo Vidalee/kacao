@@ -1,4 +1,4 @@
-package get
+package delete
 
 import (
 	"context"
@@ -7,7 +7,6 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/twmb/franz-go/pkg/kadm"
 	"github.com/twmb/franz-go/pkg/kgo"
-	"os"
 	"slices"
 )
 
@@ -21,11 +20,9 @@ This command will delete the specified topic(s) from the Kafka cluster. Use with
 - kacao delete topic <topic_name>
 - kacao delete topic <topic_name_1> <topic_name_2> ...`,
 	Example: "kacao delete topic <topic_name>",
-	Run: func(command *cobra.Command, args []string) {
+	RunE: func(command *cobra.Command, args []string) error {
 		if len(args) == 0 {
-			err := command.Help()
-			cobra.CheckErr(err)
-			return
+			return command.Help()
 		}
 
 		boostrapServers, err := cmd.GetCurrentClusterBootstrapServers()
@@ -52,23 +49,24 @@ This command will delete the specified topic(s) from the Kafka cluster. Use with
 
 		for _, topicToDelete := range args {
 			if !slices.Contains(topicsInCluster, topicToDelete) {
-				fmt.Printf("Error: Topic '%s' does not exist in the cluster!\n", topicToDelete)
-				os.Exit(1)
+				return fmt.Errorf("topic '%s' does not exist in the cluster!\n", topicToDelete)
 			}
 		}
 
 		topicDeleteResponses, err := (*kadm.Client).DeleteTopics(adminClient, ctx, args...)
 		if err != nil {
-			fmt.Printf("Error: Failed to delete topics: %v\n", err)
-			os.Exit(1)
+			return fmt.Errorf("failed to delete topics: %v\n", err)
 		}
 		for _, topicDeleteResponse := range topicDeleteResponses {
 			if topicDeleteResponse.Err != nil {
-				fmt.Printf("Failed to delete topic '%s': %v: %s\n", topicDeleteResponse.Topic, topicDeleteResponse.Err, topicDeleteResponse.ErrMessage)
+				_, err := fmt.Fprintf(command.OutOrStdout(), "Failed to delete topic '%s': %v: %s\n", topicDeleteResponse.Topic, topicDeleteResponse.Err, topicDeleteResponse.ErrMessage)
+				cobra.CheckErr(err)
 			} else {
-				fmt.Printf("Deleted topic '%s'\n", topicDeleteResponse.Topic)
+				_, err := fmt.Fprintf(command.OutOrStdout(), "Deleted topic '%s'\n", topicDeleteResponse.Topic)
+				cobra.CheckErr(err)
 			}
 		}
+		return nil
 	},
 }
 
