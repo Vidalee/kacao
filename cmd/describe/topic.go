@@ -1,4 +1,4 @@
-package get
+package describe
 
 import (
 	"context"
@@ -7,7 +7,6 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/twmb/franz-go/pkg/kadm"
 	"github.com/twmb/franz-go/pkg/kgo"
-	"os"
 )
 
 var topicCmd = &cobra.Command{
@@ -15,9 +14,9 @@ var topicCmd = &cobra.Command{
 	Short: "Describe a topic of the current cluster",
 	Long: `Describe a topic of the current cluster
 
-- kacao get topics <topic_name>
-- kacao get topics <topic_name_1> <topic_name_2> ...`,
-	Run: func(command *cobra.Command, args []string) {
+- kacao describe topic <topic_name>
+- kacao describe topic <topic_name_1> <topic_name_2> ...`,
+	RunE: func(command *cobra.Command, args []string) error {
 		boostrapServers, err := cmd.GetCurrentClusterBootstrapServers()
 		cobra.CheckErr(err)
 		consumerGroup, err := cmd.GetConsumerGroup()
@@ -53,8 +52,7 @@ var topicCmd = &cobra.Command{
 				}
 			}
 			if !found {
-				fmt.Printf("Error: Topic '%s' does not exist in the cluster!\n", topicToDescribe)
-				os.Exit(1)
+				return fmt.Errorf("topic '%s' does not exist in the cluster!\n", topicToDescribe)
 			}
 		}
 
@@ -73,33 +71,42 @@ var topicCmd = &cobra.Command{
 			topicDetail, ok := topicsToDescribeMap[topicToDescribe]
 			// Should never happen
 			if !ok {
-				fmt.Printf("Error retrieving topic %s in map\n", topicToDescribe)
-				os.Exit(1)
+				return fmt.Errorf("retrieving topic %s in map\n", topicToDescribe)
 			}
 
-			fmt.Printf("%-25s%s\n", "Name: ", topicDetail.Topic)
-			fmt.Printf("%-25s%x\n", "ID: ", topicDetail.ID)
-			fmt.Printf("%-25s%d\n", "Partitions: ", len(topicDetail.Partitions))
-			fmt.Printf("%-25s%d\n", "Replicas: ", len(topicDetail.Partitions[0].Replicas))
-			fmt.Printf("%-25s%v\n", "Is internal: ", topicDetail.IsInternal)
+			_, err := fmt.Fprintf(command.OutOrStdout(), "%-25s%s\n", "Name: ", topicDetail.Topic)
+			cobra.CheckErr(err)
+			_, err = fmt.Fprintf(command.OutOrStdout(), "%-25s%x\n", "ID: ", topicDetail.ID)
+			cobra.CheckErr(err)
+			_, err = fmt.Fprintf(command.OutOrStdout(), "%-25s%d\n", "Partitions: ", len(topicDetail.Partitions))
+			cobra.CheckErr(err)
+			_, err = fmt.Fprintf(command.OutOrStdout(), "%-25s%d\n", "Replicas: ", len(topicDetail.Partitions[0].Replicas))
+			cobra.CheckErr(err)
+			_, err = fmt.Fprintf(command.OutOrStdout(), "%-25s%v\n", "Is internal: ", topicDetail.IsInternal)
+			cobra.CheckErr(err)
 
 			messageCount := getMessageCount(listedStartOffsets[topicToDescribe], listedEndOffsets[topicToDescribe])
-			fmt.Printf("%-25s%d\n", "Message count: ", messageCount)
+			_, err = fmt.Fprintf(command.OutOrStdout(), "%-25s%d\n", "Message count: ", messageCount)
+			cobra.CheckErr(err)
 
 			resourceConfig, ok := resourceConfigMap[topicDetail.Topic]
 			if !ok {
-				fmt.Printf("No resource config found for topic '%s'.\n", topicDetail.Topic)
+				_, err = fmt.Fprintf(command.OutOrStdout(), "No resource config found for topic '%s'.\n", topicDetail.Topic)
+				cobra.CheckErr(err)
 				continue
 			}
-			fmt.Printf("Resource Configs:\n")
+			_, err = fmt.Fprintf(command.OutOrStdout(), "Resource Configs:\n")
+			cobra.CheckErr(err)
 			for _, config := range resourceConfig.Configs {
 				if config.Sensitive {
-					fmt.Printf("  %s: %s (sensitive)\n", config.Key, *config.Value)
+					_, err = fmt.Fprintf(command.OutOrStdout(), "  %s: %s (sensitive)\n", config.Key, *config.Value)
 				} else {
-					fmt.Printf("  %s: %s\n", config.Key, *config.Value)
+					_, err = fmt.Fprintf(command.OutOrStdout(), "  %s: %s\n", config.Key, *config.Value)
 				}
+				cobra.CheckErr(err)
 			}
 		}
+		return nil
 	},
 }
 
@@ -108,15 +115,18 @@ func getMessageCount(startOffsets map[int32]kadm.ListedOffset, endOffsets map[in
 	for partition, startOffset := range startOffsets {
 		endOffset, ok := endOffsets[partition]
 		if !ok {
-			fmt.Printf("Error: No end offset found for partition %d\n", partition)
+			err := fmt.Errorf("no end offset found for partition %d\n", partition)
+			cobra.CheckErr(err)
 			continue
 		}
 		if startOffset.Err != nil {
-			fmt.Printf("Error: Failed to get start offset for partition %d: %v\n", partition, startOffset.Err)
+			err := fmt.Errorf("Error: Failed to get start offset for partition %d: %v\n", partition, startOffset.Err)
+			cobra.CheckErr(err)
 			continue
 		}
 		if endOffset.Err != nil {
-			fmt.Printf("Error: Failed to get end offset for partition %d: %v\n", partition, endOffset.Err)
+			err := fmt.Errorf("Error: Failed to get end offset for partition %d: %v\n", partition, endOffset.Err)
+			cobra.CheckErr(err)
 			continue
 		}
 		count += endOffset.Offset - startOffset.Offset

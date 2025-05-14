@@ -1,4 +1,4 @@
-package get
+package describe
 
 import (
 	"github.com/Vidalee/kacao/cmd"
