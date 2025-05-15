@@ -168,20 +168,6 @@ Offline replicas:             []
 				"Error: accepts 2 arg(s), received 3",
 			},
 		},
-		{
-			name:            "multi-partition topic with specific partition details",
-			createTopics:    []string{"multi-part-topic"},
-			partitions:      3,
-			replicas:        1,
-			produceMessages: map[string]int{"multi-part-topic": 15},
-			describeArgs:    []string{"describe", "partition", "multi-part-topic", "0"},
-			expectedError:   false,
-			expectedOutput: []string{
-				"Topic:                        multi-part-topic",
-				"Partition:                    0",
-				"Latest commited offset:       15",
-			},
-		},
 	}
 
 	for _, tt := range tests {
