@@ -3,6 +3,7 @@ package test_helpers
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"github.com/Vidalee/kacao/cmd"
 	"github.com/spf13/pflag"
 	"github.com/twmb/franz-go/pkg/kadm"
@@ -121,4 +122,25 @@ func ResetSubCommandFlagValues(root *cobra.Command) {
 		})
 		ResetSubCommandFlagValues(c)
 	}
+}
+
+func ProduceMessages(t *testing.T, cl *kgo.Client, topic string, count int) {
+	t.Helper()
+
+	records := make([]*kgo.Record, count)
+	for i := 0; i < count; i++ {
+		records[i] = &kgo.Record{
+			Topic: topic,
+			Value: []byte(fmt.Sprintf("test message %d", i)),
+		}
+	}
+
+	results := cl.ProduceSync(context.Background(), records...)
+	for _, result := range results {
+		assert.NoError(t, result.Err, "Failed to produce message to topic %s", topic)
+	}
+}
+
+func StringPtr(s string) *string {
+	return &s
 }

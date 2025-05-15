@@ -90,8 +90,8 @@ func TestDescribeTopic(t *testing.T) {
 			name:         "describe topic with custom config",
 			createTopics: []string{"config-topic"},
 			topicOptions: map[string]*string{
-				"cleanup.policy": stringPtr("compact"),
-				"retention.ms":   stringPtr("86400000"),
+				"cleanup.policy": test_helpers.StringPtr("compact"),
+				"retention.ms":   test_helpers.StringPtr("86400000"),
 			},
 			describeArgs:  []string{"describe", "topic", "config-topic"},
 			expectedError: false,
@@ -158,7 +158,7 @@ func TestDescribeTopic(t *testing.T) {
 
 			if len(tt.produceMessages) > 0 {
 				for topic, count := range tt.produceMessages {
-					produceMessages(t, cl, topic, count)
+					test_helpers.ProduceMessages(t, cl, topic, count)
 				}
 			}
 
@@ -178,25 +178,4 @@ func TestDescribeTopic(t *testing.T) {
 			}
 		})
 	}
-}
-
-func produceMessages(t *testing.T, cl *kgo.Client, topic string, count int) {
-	t.Helper()
-
-	records := make([]*kgo.Record, count)
-	for i := 0; i < count; i++ {
-		records[i] = &kgo.Record{
-			Topic: topic,
-			Value: []byte(fmt.Sprintf("test message %d", i)),
-		}
-	}
-
-	results := cl.ProduceSync(context.Background(), records...)
-	for _, result := range results {
-		assert.NoError(t, result.Err, "Failed to produce message to topic %s", topic)
-	}
-}
-
-func stringPtr(s string) *string {
-	return &s
 }

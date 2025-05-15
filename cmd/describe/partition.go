@@ -19,13 +19,12 @@ var partitionCmd = &cobra.Command{
 		if err := cobra.ExactArgs(2)(cmd, args); err != nil {
 			return err
 		}
-		//check if partition id is a number
 		if _, err := strconv.ParseInt(args[1], 10, 32); err != nil {
 			return fmt.Errorf("<partition_id> must be a number")
 		}
 		return nil
 	},
-	Run: func(command *cobra.Command, args []string) {
+	RunE: func(command *cobra.Command, args []string) error {
 		topicName := args[0]
 		partitionID64, err := strconv.ParseInt(args[1], 10, 32)
 		cobra.CheckErr(err)
@@ -48,15 +47,16 @@ var partitionCmd = &cobra.Command{
 		listedOffsetsByTopic, err := (*kadm.Client).ListCommittedOffsets(adminClient, ctx, topicName)
 		cobra.CheckErr(err)
 		listedOffsets := listedOffsetsByTopic[args[0]]
-		if len(listedOffsets) == 0 {
-			fmt.Printf("No partitions found for topic '%s'. Does it exist?\n", args[0])
-			return
+
+		for _, listedOffset := range listedOffsets {
+			if listedOffset.Err != nil {
+				return fmt.Errorf("error listing offsets for topic '%s': %v\n", args[0], listedOffset.Err)
+			}
 		}
 
 		partitionListedOffset, ok := listedOffsets[partitionID]
 		if !ok {
-			fmt.Printf("No partition found with ID '%d' for topic '%s'. Does it exist?\n", partitionID, args[0])
-			return
+			return fmt.Errorf("no partition found with ID '%d' for topic '%s'. Does it exist?\n", partitionID, args[0])
 		}
 		cobra.CheckErr(partitionListedOffset.Err)
 
@@ -73,15 +73,26 @@ var partitionCmd = &cobra.Command{
 			formattedTimestamp = timestamp.Format(time.RFC3339)
 		}
 
-		fmt.Printf("%-30s%s\n", "Topic: ", partitionDetail.Topic)
-		fmt.Printf("%-30s%d\n", "Partition: ", partitionDetail.Partition)
-		fmt.Printf("%-30s%d\n", "Latest commited offset: ", partitionListedOffset.Offset)
-		fmt.Printf("%-30s%s\n", "Latest commited timestamp: ", formattedTimestamp)
-		fmt.Printf("%-30s%d\n", "Leader: ", partitionDetail.Leader)
-		fmt.Printf("%-30s%d\n", "Leader epoch: ", partitionDetail.LeaderEpoch)
-		fmt.Printf("%-30s%v\n", "Replicas: ", partitionDetail.Replicas)
-		fmt.Printf("%-30s%v\n", "Synced replicas: ", partitionDetail.ISR)
-		fmt.Printf("%-30s%v\n", "Offline replicas: ", partitionDetail.OfflineReplicas)
+		_, err = fmt.Fprintf(command.OutOrStdout(), "%-30s%s\n", "Topic: ", partitionDetail.Topic)
+		cobra.CheckErr(err)
+		_, err = fmt.Fprintf(command.OutOrStdout(), "%-30s%d\n", "Partition: ", partitionDetail.Partition)
+		cobra.CheckErr(err)
+		_, err = fmt.Fprintf(command.OutOrStdout(), "%-30s%d\n", "Latest commited offset: ", partitionListedOffset.Offset)
+		cobra.CheckErr(err)
+		_, err = fmt.Fprintf(command.OutOrStdout(), "%-30s%s\n", "Latest commited timestamp: ", formattedTimestamp)
+		cobra.CheckErr(err)
+		_, err = fmt.Fprintf(command.OutOrStdout(), "%-30s%d\n", "Leader: ", partitionDetail.Leader)
+		cobra.CheckErr(err)
+		_, err = fmt.Fprintf(command.OutOrStdout(), "%-30s%d\n", "Leader epoch: ", partitionDetail.LeaderEpoch)
+		cobra.CheckErr(err)
+		_, err = fmt.Fprintf(command.OutOrStdout(), "%-30s%v\n", "Replicas: ", partitionDetail.Replicas)
+		cobra.CheckErr(err)
+		_, err = fmt.Fprintf(command.OutOrStdout(), "%-30s%v\n", "Synced replicas: ", partitionDetail.ISR)
+		cobra.CheckErr(err)
+		_, err = fmt.Fprintf(command.OutOrStdout(), "%-30s%v\n", "Offline replicas: ", partitionDetail.OfflineReplicas)
+		cobra.CheckErr(err)
+
+		return nil
 	},
 }
 
