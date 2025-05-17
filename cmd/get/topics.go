@@ -18,7 +18,7 @@ var topicsCmd = &cobra.Command{
 You can also specify topics name to only display that topic:
 - kacao get topics <topic_name>
 - kacao get topics <topic_name_1> <topic_name_2> ...`,
-	Run: func(command *cobra.Command, args []string) {
+	RunE: func(command *cobra.Command, args []string) error {
 		boostrapServers, err := cmd.GetCurrentClusterBootstrapServers()
 		cobra.CheckErr(err)
 		consumerGroup, err := cmd.GetConsumerGroup()
@@ -44,7 +44,8 @@ You can also specify topics name to only display that topic:
 		}
 		cobra.CheckErr(err)
 
-		fmt.Printf("%-25s%-50s%-25s%-25s%-25s\n", "Topic", "Topic ID", "Partitions", "Replicas", "Is internal")
+		_, err = fmt.Fprintf(command.OutOrStdout(), "%-25s%-50s%-25s%-25s%-25s\n", "Topic", "Topic ID", "Partitions", "Replicas", "Is internal")
+		cobra.CheckErr(err)
 
 		for _, topicDetail := range topicDetails {
 			if len(args) > 0 {
@@ -53,14 +54,17 @@ You can also specify topics name to only display that topic:
 				}
 			}
 
-			fmt.Printf("%-25s%-50x%-25d%-25d%-25v\n",
+			_, err = fmt.Fprintf(command.OutOrStdout(), "%-25s%-50x%-25d%-25d%-25v\n",
 				topicDetail.Topic,
 				topicDetail.ID,
 				len(topicDetail.Partitions),
 				len(topicDetail.Partitions[0].Replicas),
 				topicDetail.IsInternal,
 			)
+			cobra.CheckErr(err)
 		}
+
+		return nil
 	},
 }
 

@@ -28,19 +28,26 @@ Example:
 - kacao get messages <topic_name> --limit 10 --header key1=value1 --header key2=*
 Will retrieve 10 messages from each partition of the topic <topic_name> and filter for messages that have a header with key1=value1 and key2 having any value.
 `,
-	Run: func(command *cobra.Command, args []string) {
-		if len(args) != 1 {
-			err := command.Help()
-			cobra.CheckErr(err)
-			return
-		}
-
+	Args: cobra.ExactArgs(1),
+	RunE: func(command *cobra.Command, args []string) error {
 		boostrapServers, err := cmd.GetCurrentClusterBootstrapServers()
 		cobra.CheckErr(err)
 		consumerGroup, err := cmd.GetConsumerGroup()
 		cobra.CheckErr(err)
 
 		limit, err := command.Flags().GetInt64("limit")
+		cobra.CheckErr(err)
+		headers, err := command.Flags().GetStringArray("header")
+		cobra.CheckErr(err)
+		headersMap := make(map[string]string)
+		for _, header := range headers {
+			parts := strings.Split(header, "=")
+			if len(parts) != 2 {
+				return fmt.Errorf("Invalid header format: %s. Expected key=value.\n", header)
+			}
+			headersMap[parts[0]] = parts[1]
+		}
+		keyFilter, err := command.Flags().GetString("key")
 		cobra.CheckErr(err)
 
 		cl, err := kgo.NewClient(
@@ -54,7 +61,13 @@ Will retrieve 10 messages from each partition of the topic <topic_name> and filt
 		defer adminClient.Close()
 		ctx := context.Background()
 
-		committedListedOffsets, _ := adminClient.ListEndOffsets(ctx, args...)
+		committedListedOffsets, err := adminClient.ListEndOffsets(ctx, args[0])
+		cobra.CheckErr(err)
+		for _, listedOffset := range committedListedOffsets[args[0]] {
+			if listedOffset.Err != nil {
+				return fmt.Errorf("error listing offsets for topic '%s': %v\n", args[0], listedOffset.Err)
+			}
+		}
 
 		var limitsByPartition = make(map[int32]int64)
 		var counterByPartition = make(map[int32]int64)
@@ -88,10 +101,11 @@ Will retrieve 10 messages from each partition of the topic <topic_name> and filt
 		signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 		go func() {
 			<-sigChan
-			fmt.Println("Closing client...")
+			_, err := fmt.Fprintf(command.OutOrStdout(), "Closing client...")
 			cl.Close()
 			adminClient.Close()
-			os.Exit(0)
+			cobra.CheckErr(err)
+			fmt.Println("Client closed")
 		}()
 
 		records := make([]kgo.Record, 0)
@@ -133,6 +147,13 @@ Will retrieve 10 messages from each partition of the topic <topic_name> and filt
 			if diff < 0 {
 				return 1
 			}
+			offSetDiff := a.Offset - b.Offset
+			if offSetDiff > 0 {
+				return -1
+			}
+			if offSetDiff < 0 {
+				return 1
+			}
 			return 0
 		})
 
@@ -140,33 +161,27 @@ Will retrieve 10 messages from each partition of the topic <topic_name> and filt
 			records = records[:limit]
 		}
 
-		headers, err := command.Flags().GetStringArray("header")
-		cobra.CheckErr(err)
-		headersMap := make(map[string]string)
-		for _, header := range headers {
-			parts := strings.Split(header, "=")
-			if len(parts) != 2 {
-				_, err = fmt.Fprintf(os.Stderr, "Invalid header format: %s. Expected key=value.\n", header)
-				cobra.CheckErr(err)
-				os.Exit(1)
-			}
-			headersMap[parts[0]] = parts[1]
-		}
-
-		if len(headers) > 0 {
+		if len(keyFilter) > 0 {
 			var filteredRecords []kgo.Record
 			for _, record := range records {
-				// Prevents empty record header slice to be considered as a match
-				match := len(record.Headers) >= len(headers)
-				if !match {
-					continue
+				if string(record.Key) == keyFilter {
+					filteredRecords = append(filteredRecords, record)
 				}
+			}
+			records = filteredRecords
+		}
+
+		if len(headers) > 0 || len(keyFilter) > 0 {
+			var filteredRecords []kgo.Record
+			for _, record := range records {
+				match := false
 				for _, recordHeader := range record.Headers {
-					//check map contains key
 					if _, ok := headersMap[recordHeader.Key]; ok {
 						if headersMap[recordHeader.Key] != "*" && string(recordHeader.Value) != headersMap[recordHeader.Key] {
 							match = false
 							break
+						} else {
+							match = true
 						}
 					}
 				}
@@ -177,17 +192,34 @@ Will retrieve 10 messages from each partition of the topic <topic_name> and filt
 			records = filteredRecords
 		}
 
+		_, err = fmt.Fprintf(command.OutOrStdout(), "%-25s%-25s%-25s%-25s%-25s%-25s\n", "Topic", "Partition", "Offset", "Key", "Value", "Headers")
+
 		for _, record := range records {
-			fmt.Printf("Topic: %s, Partition: %d, Offset: %d, Key: %s, Value: %s\n", record.Topic, record.Partition, record.Offset, string(record.Key), string(record.Value))
-			for _, header := range record.Headers {
-				fmt.Printf("Header: %s: %s\n", header.Key, string(header.Value))
+			if len(record.Headers) == 0 {
+				_, err := fmt.Fprintf(command.OutOrStdout(), "%-25s%-25d%-25d%-25s%-25s\n",
+					record.Topic, record.Partition, record.Offset, string(record.Key), string(record.Value))
+				cobra.CheckErr(err)
+				continue
 			}
+
+			var headers []string
+			for _, header := range record.Headers {
+				headers = append(headers, fmt.Sprintf("%s: %s", header.Key, string(header.Value)))
+			}
+			headersString := strings.Join(headers, ", ")
+
+			_, err := fmt.Fprintf(command.OutOrStdout(), "%-25s%-25d%-25d%-25s%-25s%-25s\n",
+				record.Topic, record.Partition, record.Offset, string(record.Key), string(record.Value), headersString)
+			cobra.CheckErr(err)
 		}
+
+		return nil
 	},
 }
 
 func init() {
 	messagesCmd.Flags().Int64P("limit", "l", 10, "Limit the number of messages to get.")
+	messagesCmd.Flags().StringP("key", "k", "", "Filter messages by key, example: --key value")
 	messagesCmd.Flags().StringArrayP("header", "H", []string{}, "Filter messages by header, example: --header key=value.")
 
 	getCmd.AddCommand(messagesCmd)

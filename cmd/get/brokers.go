@@ -13,7 +13,7 @@ var brokersCmd = &cobra.Command{
 	Use:   "brokers",
 	Short: "Display brokers of the current cluster",
 	Long:  `Display brokers of the current cluster`,
-	Run: func(command *cobra.Command, args []string) {
+	RunE: func(command *cobra.Command, args []string) error {
 		boostrapServers, err := cmd.GetCurrentClusterBootstrapServers()
 		cobra.CheckErr(err)
 		consumerGroup, err := cmd.GetConsumerGroup()
@@ -32,16 +32,18 @@ var brokersCmd = &cobra.Command{
 		brokerDetails, err := (*kadm.Client).ListBrokers(adminClient, ctx)
 		cobra.CheckErr(err)
 
-		fmt.Printf("%-25s%-20s%-10s%-10s\n", "Broker ID", "Host", "Port", "Rack")
-
+		_, err = fmt.Fprintf(command.OutOrStdout(), "%-25s%-20s%-10s%-10s\n", "Broker ID", "Host", "Port", "Rack")
+		cobra.CheckErr(err)
 		for _, brokerDetail := range brokerDetails {
-			fmt.Printf("%-25d%-20s%-10d%-10v\n",
+			_, err := fmt.Fprintf(command.OutOrStdout(), "%-25d%-20s%-10d%-10v\n",
 				brokerDetail.NodeID,
 				brokerDetail.Host,
 				brokerDetail.Port,
 				brokerDetail.Rack,
 			)
+			cobra.CheckErr(err)
 		}
+		return nil
 	},
 }
 

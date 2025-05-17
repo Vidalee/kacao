@@ -15,17 +15,8 @@ var partitionsCmd = &cobra.Command{
 	Use:   "partitions <topic_name>",
 	Short: "Display partitions of a topic",
 	Long:  `Display partitions of a topic`,
-	Run: func(command *cobra.Command, args []string) {
-		if len(args) == 0 {
-			err := command.Help()
-			cobra.CheckErr(err)
-			return
-		}
-		if len(args) > 1 {
-			fmt.Println("Error: Only one topic name is allowed.")
-			return
-		}
-
+	Args:  cobra.ExactArgs(1),
+	RunE: func(command *cobra.Command, args []string) error {
 		boostrapServers, err := cmd.GetCurrentClusterBootstrapServers()
 		cobra.CheckErr(err)
 		consumerGroup, err := cmd.GetConsumerGroup()
@@ -43,9 +34,11 @@ var partitionsCmd = &cobra.Command{
 		listedOffsetsByTopic, err := (*kadm.Client).ListCommittedOffsets(adminClient, ctx, args[0])
 		cobra.CheckErr(err)
 		listedOffsets := listedOffsetsByTopic[args[0]]
-		if len(listedOffsets) == 0 {
-			fmt.Printf("No partitions found for topic '%s'. Does it exist?\n", args[0])
-			return
+
+		for _, listedOffset := range listedOffsets {
+			if listedOffset.Err != nil {
+				return fmt.Errorf("error listing offsets for topic '%s': %v\n", args[0], listedOffset.Err)
+			}
 		}
 
 		orderedListedOffsets := make([]int32, 0, len(listedOffsets))
@@ -54,7 +47,8 @@ var partitionsCmd = &cobra.Command{
 		}
 		slices.Sort(orderedListedOffsets)
 
-		fmt.Printf("%-25s%-25s%-25s%-25s%-25s\n", "Topic", "Partition", "Record Offset", "Leader Epoch", "Timestamp")
+		_, err = fmt.Fprintf(command.OutOrStdout(), "%-25s%-25s%-25s%-25s%-25s\n", "Topic", "Partition", "Record Offset", "Leader Epoch", "Timestamp")
+		cobra.CheckErr(err)
 
 		for _, partition := range orderedListedOffsets {
 			listedOffset := listedOffsets[partition]
@@ -68,9 +62,12 @@ var partitionsCmd = &cobra.Command{
 				formattedTimestamp = timestamp.Format(time.RFC3339)
 			}
 
-			fmt.Printf("%-25s%-25d%-25d%-25d%-25s\n", args[0], partition,
+			_, err = fmt.Fprintf(command.OutOrStdout(), "%-25s%-25d%-25d%-25d%-25s\n", args[0], partition,
 				listedOffset.Offset, listedOffset.LeaderEpoch, formattedTimestamp)
+			cobra.CheckErr(err)
 		}
+
+		return nil
 	},
 }
 

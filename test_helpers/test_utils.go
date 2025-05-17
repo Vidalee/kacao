@@ -141,6 +141,28 @@ func ProduceMessages(t *testing.T, cl *kgo.Client, topic string, count int) {
 	}
 }
 
+func ProduceMessageWithHeadersAndKey(t *testing.T, cl *kgo.Client, topic string, value string, key string, headers map[string]string) {
+	t.Helper()
+
+	record := &kgo.Record{
+		Topic:   topic,
+		Value:   []byte(value),
+		Key:     []byte(key),
+		Headers: make([]kgo.RecordHeader, 0, len(headers)),
+	}
+	for key, val := range headers {
+		record.Headers = append(record.Headers, kgo.RecordHeader{
+			Key:   key,
+			Value: []byte(val),
+		})
+	}
+
+	results := cl.ProduceSync(context.Background(), record)
+	for _, result := range results {
+		assert.NoError(t, result.Err, "Failed to produce message to topic %s", topic)
+	}
+}
+
 func StringPtr(s string) *string {
 	return &s
 }
