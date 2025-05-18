@@ -15,7 +15,7 @@ import (
 )
 
 var messagesCmd = &cobra.Command{
-	Use:   "messages <topic_name> [--limit <limit>] [--header <key=value>]",
+	Use:   "messages <topic_name> [--limit <limit>] [--key key] [--header <key=value>]",
 	Short: "Get messages from a topic",
 	Long: `Get messages from a topic
 
@@ -25,8 +25,8 @@ If you are filtering by header, you may get less than {limit} messages since the
 If multiple headers are provided, all must match. Putting * as the value will match any value.
 
 Example:
-- kacao get messages <topic_name> --limit 10 --header key1=value1 --header key2=*
-Will retrieve 10 messages from each partition of the topic <topic_name> and filter for messages that have a header with key1=value1 and key2 having any value.
+- kacao get messages <topic_name> --limit 10 --key my-key --header key1=value1 --header key2=*
+Will retrieve 10 messages from each partition of the topic <topic_name> and filter for messages that have for key "my-key", and headers with key1=value1 and key2 having any value.
 `,
 	Args: cobra.ExactArgs(1),
 	RunE: func(command *cobra.Command, args []string) error {

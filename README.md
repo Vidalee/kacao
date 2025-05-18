@@ -2,6 +2,20 @@
 
 Kacao is a kubectl-style Kafka CLI for your daily needs.
 
+Features:
+- Fully covered by unit tests
+- Start offset specifiable consume command
+- Retrieve messages from a topic with filtering
+
+  Example:
+  `kacao get messages <topic_name> --limit 10 --key my-key --header key1=value1 --header key2=*`
+
+  Will retrieve 10 messages from each partition of the topic <topic_name> and filter for messages that have for key "my-key", and headers with key1=value1 and key2 having any value.
+- Produce messages with specified key and headers
+- Retrieve number of messages of a topic in total and per partition
+
+
+
 ```
 Available Commands:
   completion  Generate the autocompletion script for the specified shell
