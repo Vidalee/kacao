@@ -7,8 +7,8 @@ import (
 
 var describeCmd = &cobra.Command{
 	Use:   "describe",
-	Short: "Display one or many resources",
-	Long:  `Display one or many resources`,
+	Short: "Describe one or many resources",
+	Long:  `Describe one or many resources`,
 }
 
 func init() {
