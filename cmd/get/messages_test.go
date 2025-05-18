@@ -166,7 +166,13 @@ func TestGetMessages(t *testing.T) {
 				}
 			}
 
-			time.Sleep(5 * time.Second)
+			// Needed since if we don't correctly close the client because of the test context
+			// we will have issues consuming messages with the same consumer group in the next test
+			//viper.Set("contexts.test-context.consumer-group", test_helpers.RandomString(7))
+
+			// It doesn't fix the issue, but it's something I guess, here is a sleep to try to avoid the
+			// "Error: UNKNOWN_MEMBER_ID: The coordinator is not aware of this member." with tests I guess :/
+			time.Sleep(10 * time.Second)
 
 			output, err := test_helpers.ExecuteCommandWrapper(tt.getArgs)
 
