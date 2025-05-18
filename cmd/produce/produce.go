@@ -6,7 +6,6 @@ import (
 	"github.com/Vidalee/kacao/cmd"
 	"github.com/spf13/cobra"
 	"github.com/twmb/franz-go/pkg/kgo"
-	"os"
 	"strings"
 	"sync"
 )
@@ -15,13 +14,8 @@ var produceCmd = &cobra.Command{
 	Use:   "produce <topic> --message <message> [--key <key>] [--header <key=value>]",
 	Short: "Produce messages to a topic",
 	Long:  `Produce messages to a topic`,
-	Run: func(command *cobra.Command, args []string) {
-		if len(args) == 0 {
-			err := command.Help()
-			cobra.CheckErr(err)
-			return
-		}
-
+	Args:  cobra.ExactArgs(1),
+	RunE: func(command *cobra.Command, args []string) error {
 		boostrapServers, err := cmd.GetCurrentClusterBootstrapServers()
 		cobra.CheckErr(err)
 		consumerGroup, err := cmd.GetConsumerGroup()
@@ -49,9 +43,7 @@ var produceCmd = &cobra.Command{
 		for _, header := range headers {
 			parts := strings.Split(header, "=")
 			if len(parts) != 2 {
-				_, err := fmt.Fprint(os.Stderr, "Invalid header format. Expected key=value.\n")
-				cobra.CheckErr(err)
-				os.Exit(1)
+				return fmt.Errorf("invalid header format. Expected key=value.\n")
 			}
 			kafkaHeaders = append(kafkaHeaders, kgo.RecordHeader{Key: parts[0], Value: []byte(parts[1])})
 		}
@@ -63,6 +55,8 @@ var produceCmd = &cobra.Command{
 			cobra.CheckErr(err)
 		})
 		wg.Wait()
+
+		return nil
 	},
 }
 

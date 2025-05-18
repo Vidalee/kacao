@@ -48,12 +48,13 @@ func TestProduceMessages(t *testing.T) {
 	}
 
 	tests := []struct {
-		name            string
-		produceArgs     []string
-		expectedKey     string
-		expectedHeaders map[string]string
-		expectedMessage string
-		expectedError   bool
+		name             string
+		produceArgs      []string
+		expectedKey      string
+		expectedHeaders  map[string]string
+		expectedMessage  string
+		expectedError    bool
+		expectedErrorMsg string
 	}{
 		{
 			name:            "basic produce message",
@@ -83,6 +84,13 @@ func TestProduceMessages(t *testing.T) {
 			expectedMessage: "Keyed Header Message",
 			expectedError:   false,
 		},
+		{
+			name:             "produce message with key and headers without =",
+			produceArgs:      []string{"produce", "produce-topic-key-header", "--message", "Keyed Header Message", "--key", "my-key", "--header", "header-key"},
+			expectedMessage:  "Keyed Header Message",
+			expectedError:    true,
+			expectedErrorMsg: "invalid header format. Expected key=value.",
+		},
 	}
 
 	for _, tt := range tests {
@@ -104,9 +112,10 @@ func TestProduceMessages(t *testing.T) {
 			_, err = adminClient.CreateTopics(ctx, 1, 1, nil, topicName)
 			assert.NoError(t, err)
 
-			_, err = test_helpers.ExecuteCommandWrapper(tt.produceArgs)
+			output, err := test_helpers.ExecuteCommandWrapper(tt.produceArgs)
 			if tt.expectedError {
 				assert.Error(t, err)
+				assert.Contains(t, output, tt.expectedErrorMsg)
 				return
 			}
 			assert.NoError(t, err)
