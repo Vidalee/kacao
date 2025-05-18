@@ -124,6 +124,20 @@ func ResetSubCommandFlagValues(root *cobra.Command) {
 	}
 }
 
+func ProduceMessage(t *testing.T, cl *kgo.Client, topic string, value string) {
+	t.Helper()
+
+	record := &kgo.Record{
+		Topic: topic,
+		Value: []byte(value),
+	}
+
+	results := cl.ProduceSync(context.Background(), record)
+	for _, result := range results {
+		assert.NoError(t, result.Err, "Failed to produce message to topic %s", topic)
+	}
+}
+
 func ProduceMessages(t *testing.T, cl *kgo.Client, topic string, count int) {
 	t.Helper()
 

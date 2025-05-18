@@ -1,7 +1,8 @@
-package get
+package consume
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"github.com/Vidalee/kacao/cmd"
 	"github.com/spf13/cobra"
@@ -9,29 +10,37 @@ import (
 	"github.com/twmb/franz-go/pkg/kgo"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
+	"time"
 )
 
 var consumeCmd = &cobra.Command{
-	Use:   "consume <topic_name> [--offset <offset>]",
+	Use:   "consume <topic_name> [--offset <offset>] [--timeout <seconds>]",
 	Short: "Consume messages from a topic",
-	Long:  `Consume messages from a topic`,
-	Run: func(command *cobra.Command, args []string) {
-		if len(args) != 1 {
-			err := command.Help()
-			cobra.CheckErr(err)
-			return
-		}
-
+	Long:  `Consume messages from a topic with an optional timeout.`,
+	Args:  cobra.ExactArgs(1),
+	RunE: func(command *cobra.Command, args []string) error {
 		boostrapServers, err := cmd.GetCurrentClusterBootstrapServers()
 		cobra.CheckErr(err)
 		consumerGroup, err := cmd.GetConsumerGroup()
 		cobra.CheckErr(err)
 		offsetArg, err := command.Flags().GetString("offset")
 		cobra.CheckErr(err)
+		timeoutArg, err := command.Flags().GetString("timeout")
+		cobra.CheckErr(err)
+
 		if offsetArg != "" && offsetArg != "earliest" && offsetArg != "latest" {
-			fmt.Println("Invalid offset argument. Use 'earliest' or 'latest'. By default, the last committed offset by Kacao will be used.")
-			return
+			return fmt.Errorf("invalid offset argument. Use 'earliest' or 'latest'. By default, the last committed offset by Kacao will be used")
+		}
+
+		timeoutDuration := time.Duration(0)
+		if timeoutArg != "" {
+			seconds, err := strconv.Atoi(timeoutArg)
+			if err != nil || seconds < 0 {
+				return fmt.Errorf("invalid timeout value. Must be a non-negative integer representing seconds")
+			}
+			timeoutDuration = time.Duration(seconds) * time.Second
 		}
 
 		cl, err := kgo.NewClient(
@@ -43,7 +52,13 @@ var consumeCmd = &cobra.Command{
 		adminClient := kadm.NewClient(cl)
 		defer cl.Close()
 		defer adminClient.Close()
+
 		ctx := context.Background()
+		if timeoutDuration > 0 {
+			var cancel context.CancelFunc
+			ctx, cancel = context.WithTimeout(ctx, timeoutDuration)
+			defer cancel()
+		}
 
 		committedListedOffsets, _ := adminClient.ListEndOffsets(ctx, args...)
 
@@ -62,7 +77,6 @@ var consumeCmd = &cobra.Command{
 					LeaderEpoch: listedOffset.LeaderEpoch,
 					Metadata:    "",
 				}
-
 			}
 			err := adminClient.CommitAllOffsets(ctx, consumerGroup, newOffsets)
 			cobra.CheckErr(err)
@@ -75,19 +89,29 @@ var consumeCmd = &cobra.Command{
 			fmt.Println("Closing client...")
 			cl.Close()
 			adminClient.Close()
-			os.Exit(0)
 		}()
 
 		for {
-			fetches := cl.PollFetches(ctx)
-			if errs := fetches.Errors(); len(errs) > 0 {
-				panic(fmt.Sprint(errs))
-			}
+			select {
+			case <-ctx.Done():
+				_, err := fmt.Fprintln(command.OutOrStdout(), "Timeout reached. Stopping consumer.")
+				cobra.CheckErr(err)
+				return nil
+			default:
+				fetches := cl.PollFetches(ctx)
+				if errs := fetches.Errors(); len(errs) > 0 {
+					if errors.Is(errs[0].Err, context.DeadlineExceeded) {
+						return nil
+					}
+					panic(fmt.Sprint(errs))
+				}
 
-			iter := fetches.RecordIter()
-			for !iter.Done() {
-				record := iter.Next()
-				fmt.Println(string(record.Value))
+				iter := fetches.RecordIter()
+				for !iter.Done() {
+					record := iter.Next()
+					_, err := fmt.Fprintln(command.OutOrStdout(), string(record.Value))
+					cobra.CheckErr(err)
+				}
 			}
 		}
 	},
@@ -95,5 +119,6 @@ var consumeCmd = &cobra.Command{
 
 func init() {
 	consumeCmd.Flags().StringP("offset", "o", "", "Offset to start consuming from (latest, earliest, or by default the last committed offset by Kacao)")
+	consumeCmd.Flags().StringP("timeout", "t", "", "Timeout in seconds to stop consuming messages")
 	cmd.RootCmd.AddCommand(consumeCmd)
 }
