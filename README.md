@@ -2,6 +2,8 @@
 
 Kacao is a kubectl-style Kafka CLI for your daily needs.
 
+Install with `go install github.com/Vidalee/kacao@latest`
+
 Features:
 - Fully covered by unit tests
 - Start offset specifiable consume command
