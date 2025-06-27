@@ -12,7 +12,7 @@ var setContextCmd = &cobra.Command{
 	Long: `Setup a context entry in the Kacao configuration.
 
 Example:
-- kacao config set-context local --bootstrap-servers localhost:9092 --consumer-group local-consumer-group`,
+- kacao config set-context local --cluster local --consumer-group local-consumer-group`,
 	Args: cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if len(args) == 0 {
